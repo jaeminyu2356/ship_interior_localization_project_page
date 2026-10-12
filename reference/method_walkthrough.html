@@ -1,0 +1,773 @@
+<title>선체 내부 다중가설 위치추정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@600;700&display=swap">
+<style>
+/* Layout: 엔지니어링 노트 — 왼쪽 고정 목차 + 오른쪽 본문(단계별 카드는 '직관 → 계산 → 이 영상의 실제 값' 순서). */
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #15191e;
+  --ink2: #48505a;
+  --muted: #7b838d;
+  --rule: #dde1e5;
+  --tint: #eaf1fa;
+  --x: #d4582a;   /* X-facing (영상의 주황) */
+  --y: #2a78d6;   /* Y-facing (영상의 파랑) */
+  --z: #158f63;   /* Z-facing (영상의 청록) */
+  --accent: #2a78d6;
+  --warn: #b5541f;
+  --code-bg: #eef1f4;
+  --f-display: "Noto Serif KR", "Nanum Myeongjo", Georgia, serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --surface: #181c21; --ink: #e8ebee; --ink2: #b4bbc3; --muted: #838b95;
+    --rule: #2b3138; --tint: #19283a; --x: #f08259; --y: #69a5ec; --z: #45c495; --accent: #69a5ec;
+    --warn: #f08259; --code-bg: #20262d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111418; --surface: #181c21; --ink: #e8ebee; --ink2: #b4bbc3; --muted: #838b95;
+  --rule: #2b3138; --tint: #19283a; --x: #f08259; --y: #69a5ec; --z: #45c495; --accent: #69a5ec;
+  --warn: #f08259; --code-bg: #20262d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.75; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 13.5px; line-height: 1.5; }
+nav.toc .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+nav.toc a { display: block; padding: 4px 10px; border-left: 2px solid var(--rule); color: var(--ink2); text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { border-left-color: var(--accent); color: var(--ink); outline: none; }
+nav.toc .sub a { padding-left: 22px; font-size: 12.5px; color: var(--muted); }
+main { min-width: 0; }
+header.hero { padding-bottom: 28px; border-bottom: 1px solid var(--rule); margin-bottom: 36px; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-size: clamp(28px, 4.2vw, 40px); line-height: 1.25; margin: 8px 0 14px; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-size: 25px; line-height: 1.35; margin: 64px 0 14px; text-wrap: balance; scroll-margin-top: 20px; }
+h3 { font-size: 18px; font-weight: 600; margin: 30px 0 8px; text-wrap: balance; scroll-margin-top: 20px; }
+h4 { font-size: 14px; font-weight: 600; margin: 18px 0 4px; color: var(--ink2); letter-spacing: .02em; }
+p, li { max-width: 68ch; }
+p { margin: 8px 0 12px; }
+.lead { font-size: 17.5px; color: var(--ink2); }
+a { color: var(--accent); }
+code, .mono { font-family: var(--f-mono); font-size: .88em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.cx { color: var(--x); font-weight: 600; } .cy { color: var(--y); font-weight: 600; } .cz { color: var(--z); font-weight: 600; }
+.formula { font-family: var(--f-mono); font-size: 14.5px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 16px; margin: 12px 0; overflow-x: auto; white-space: pre; line-height: 1.7; }
+.note { border-left: 3px solid var(--accent); background: var(--tint); padding: 10px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; max-width: 72ch; }
+.note.warn { border-left-color: var(--warn); }
+.note p { margin: 4px 0; }
+figure { margin: 18px 0 22px; }
+figure video { display: block; width: 100%; height: auto; max-width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--rule); border-radius: 6px; background: #fcfcfb; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; background: #fcfcfb; }
+figcaption { font-size: 13.5px; color: var(--muted); margin-top: 6px; max-width: 80ch; }
+.table-wrap { overflow-x: auto; margin: 14px 0 18px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; color: var(--ink2); background: var(--code-bg); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
+.pipeline { list-style: none; padding: 0; margin: 18px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; counter-reset: st; }
+.pipeline li { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; font-size: 14px; line-height: 1.5; counter-increment: st; min-width: 0; }
+.pipeline li::before { content: counter(st); font-family: var(--f-mono); font-size: 12px; color: var(--accent); display: block; }
+.pipeline b { display: block; font-weight: 600; }
+.pipeline span { color: var(--muted); font-size: 13px; }
+.stage { border-top: 1px solid var(--rule); padding-top: 4px; }
+.stage-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.stage-head .no { font-family: var(--f-mono); font-size: 14px; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 7px; line-height: 1.6; }
+.stage-head h2 { margin-top: 40px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 14px 0; }
+.facts > div { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px; min-width: 0; }
+.facts h4 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.facts p, .facts li { font-size: 14.5px; margin: 2px 0; }
+.facts ul { margin: 0; padding-left: 18px; }
+.funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0; margin: 16px 0; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.funnel div { padding: 12px 14px; border-right: 1px solid var(--rule); min-width: 0; }
+.funnel div:last-child { border-right: 0; }
+.funnel .n { font-family: var(--f-mono); font-size: 24px; font-weight: 500; display: block; color: var(--ink); }
+.funnel .d { font-size: 13px; color: var(--muted); line-height: 1.45; display: block; }
+.src { font-size: 13px; color: var(--muted); }
+.src code { font-size: 12px; }
+dl.gloss { display: grid; grid-template-columns: minmax(130px, 200px) minmax(0, 1fr); gap: 8px 20px; margin: 12px 0; }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dd { margin: 0; color: var(--ink2); }
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 24px 60px; padding-inline: 16px; }
+  nav.toc { position: static; border: 1px solid var(--rule); border-radius: 6px; padding: 12px; background: var(--surface); }
+  nav.toc .sub { display: none; }
+  dl.gloss { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
+  dl.gloss dd { margin-bottom: 10px; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="목차">
+  <div class="label">목차</div>
+  <ol>
+    <li><a href="#overview">한눈에 보기</a></li>
+    <li><a href="#problem">문제: 왜 어려운가</a></li>
+    <li><a href="#prior">Prior map 만들기</a></li>
+    <li class="sub"><a href="#prior-model">선체 모델</a></li>
+    <li class="sub"><a href="#prior-pcd">지도 점군</a></li>
+    <li class="sub"><a href="#prior-manhattan">맨해튼 지도</a></li>
+    <li><a href="#dataset">스캔 데이터셋 만들기</a></li>
+    <li><a href="#s1">1 입력</a></li>
+    <li><a href="#s2">2 Yaw 가설</a></li>
+    <li><a href="#s3">3 축 분류</a></li>
+    <li><a href="#s4">4 단면 투표 (y, z)</a></li>
+    <li><a href="#s5">5 길이방향 상관 (x)</a></li>
+    <li><a href="#s6">6 가설 생성·선별</a></li>
+    <li><a href="#s7">7 ICP 정밀화</a></li>
+    <li><a href="#s8">8 Paired-z 선택</a></li>
+    <li><a href="#s9">9 출력</a></li>
+    <li><a href="#casea">Case A와 Ablation</a></li>
+    <li><a href="#results">정량 결과</a></li>
+    <li><a href="#video">영상 구성</a></li>
+    <li><a href="#params">설정값 총정리</a></li>
+    <li><a href="#gloss">용어 정리</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Supplementary video · 메소드 정리</div>
+  <h1>선체 내부 다중가설 전역 위치추정</h1>
+  <p class="lead">라이다 스캔 한 장만으로, 반복 구조가 심한 선박 내부에서 로봇의 위치 (x, y, z, yaw)를 찾는 방법입니다. 확신할 수 없을 때는 답을 하나로 찍지 않고, <b>배제할 수 없는 후보를 전부 가중치와 함께</b> 내보냅니다. 이 페이지는 지도와 데이터셋을 어떻게 준비했는지부터 시작해, 영상에 나오는 9단계를 순서대로 설명합니다.</p>
+  <p class="src">아래 수치는 모두 영상에 쓰인 실제 실행 결과와 데이터셋 기록에서 가져왔습니다.</p>
+</header>
+
+<!-- ================================================================ -->
+<section id="overview">
+<h2>한눈에 보기</h2>
+<p>핵심 아이디어는 <b>"맨해튼 구조 덕분에 6자유도 문제를 쉬운 1차원 문제들로 쪼갠다"</b>입니다. 선박 중앙부(parallel body)의 벽, 격벽, 갑판은 서로 직각으로 만납니다. 그러면:</p>
+<ul>
+  <li><b>회전(yaw)</b>은 벽 법선 방향만 보면 90° 단위까지 정해집니다. 남는 모호함은 4가지뿐입니다.</li>
+  <li><b>횡단면 이동(<span class="cy">y</span>, <span class="cz">z</span>)</b>은 스캔에 보이는 평면 몇 개와 지도의 평면 목록을 맞추면 나옵니다.</li>
+  <li><b>길이방향 이동(<span class="cx">x</span>)</b>은 "프레임(늑판)이 x축을 따라 어떻게 배치돼 있나"라는 1차원 신호의 상관(correlation)으로 찾습니다. 문제는 이 신호가 3 m마다 거의 똑같이 반복된다는 점입니다.</li>
+</ul>
+<p>그래서 단계 1–5는 각 축의 <b>후보 목록</b>을 만들고, 단계 6–8은 후보 조합을 실제 지도 점군에 대 보며 <b>"최고 후보가 확실히 이기는 경쟁자만 탈락"</b>시킵니다. 롤·피치는 0으로 가정합니다(센서를 수평으로 장착).</p>
+
+<ol class="pipeline">
+  <li><b>입력</b><span>스캔 + 구획(compartment) 사전정보</span></li>
+  <li><b>Yaw 가설</b><span>벽 법선 투표, mod 90° → 4개</span></li>
+  <li><b>축 분류</b><span>점을 X/Y/Z 향 면으로 라벨링</span></li>
+  <li><b>단면 투표</b><span>y, z 후보 각 6개</span></li>
+  <li><b>길이방향 상관</b><span>구획 안 x 후보 ~20개</span></li>
+  <li><b>가설 선별</b><span>약 2,800개 포즈 → 150 → 25</span></li>
+  <li><b>ICP 정밀화</b><span>4-DoF point-to-plane</span></li>
+  <li><b>Paired-z 선택</b><span>z &lt; 3이면 유지</span></li>
+  <li><b>출력</b><span>가중치 붙은 가설 집합</span></li>
+</ol>
+
+<p>영상은 이 과정을 Isaac Sim에서 찍은 실제 라이다 스캔 두 장(no_yaw 데이터셋)으로 보여 줍니다.</p>
+<div class="table-wrap"><table>
+  <tr><th>케이스</th><th>스캔</th><th>성격</th><th>결과</th></tr>
+  <tr><td>Case B (전체 설명)</td><td>no_yaw 2번</td><td>닮은꼴 위치를 스캔만으로 배제 못 함</td><td>가설 10개, 1위 = 정답 (가중치 28.5%)</td></tr>
+  <tr><td>Case A (축약)</td><td>no_yaw 0번</td><td>스캔만으로 위치가 결정됨</td><td>가설 1개 (decisive), 정답</td></tr>
+</table></div>
+</section>
+
+<!-- ================================================================ -->
+<section id="problem">
+<h2>문제: 왜 어려운가</h2>
+<figure>
+  <img src="../static/images/problem.jpg" alt="선박 지도 위 7개 구획(c=0..6)과 점선으로 표시된 격벽 위치" loading="lazy">
+  <figcaption>영상 0:05–0:14. 지도 점군을 위에서 본 모습. 파란 점선이 자동 검출된 격벽(bulkhead)이고 c = 0…6이 구획 번호입니다.</figcaption>
+</figure>
+<p>선박 내부는 같은 모양이 계속 반복됩니다.</p>
+<ul>
+  <li><b>프레임 간격 약 3 m</b>: 늑판(transverse floor)이 일정 간격으로 서 있어서, 3 m 옮겨도 스캔이 거의 같아 보입니다.</li>
+  <li><b>구획 간격 약 27 m</b>: 격벽으로 나뉜 구획이 거의 동일하게 반복됩니다. 이 지도에서는 격벽이 x ≈ 27.1, 54.2, 81.4, 108.5, 135.7, 162.8 m에서 검출되어 구획 7개가 생깁니다.</li>
+</ul>
+<p>Scan Context 같은 범용 6-DoF 매칭은 이런 환경에서 틀린 위치를 자신 있게 고르기 쉽습니다. 이 방법의 목표는 그 반대입니다.</p>
+<div class="note">
+  <p><b>설계 원칙</b>: 이 모듈은 로봇의 오도메트리를 <i>보정</i>하려고 만든 것이라 오도메트리나 이전 추정을 전혀 쓰지 않습니다. 매 스캔을 처음부터 풉니다. 스캔 하나로 결정이 안 되면 배제 못 하는 포즈를 모두 내보내고, 그중 고르는 일은 오도메트리를 아는 로봇 쪽 융합기(fusion)에 맡깁니다.</p>
+</div>
+<p><b>선택적 사전정보</b>: 로봇이 "지금 몇 번 구획에 있다"는 것만 알면 탐색 범위가 그 구획 안으로 줄어듭니다. 영상의 두 케이스는 모두 c = 2, x ∈ [54.2, 81.4) m입니다.</p>
+</section>
+
+<!-- ================================================================ -->
+<section id="prior">
+<h2>Prior map 만들기</h2>
+<p>위치추정에 쓰는 지도(prior map)는 두 가지이고, 둘 다 같은 3D 선체 모델에서 나옵니다. 로봇을 몰고 다니며 SLAM으로 지도를 만들지 않습니다.</p>
+<div class="table-wrap"><table>
+  <tr><th>지도</th><th>내용</th><th>쓰이는 곳</th></tr>
+  <tr><td>지도 점군</td><td>선체 표면 점 1,967,133개 (0.2 m 간격)</td><td>6–8단계: 후보 포즈 점수 계산, ICP, paired z</td></tr>
+  <tr><td>맨해튼 지도</td><td>평면 위치 목록 + x 시그니처 (텍스트 약 6 KB)</td><td>2–5단계: y, z, x 후보 생성, 구획 검출</td></tr>
+</table></div>
+<div class="facts">
+  <div><h4>1. 선체 모델</h4><p>선체 내부 구조를 절차적으로 생성하고, 도크 주변 환경을 덧붙인 시뮬레이션 장면</p></div>
+  <div><h4>2. 표면 샘플링</h4><p>모델의 각 면에서 직접 점을 뽑음 → 약 501만 점</p></div>
+  <div><h4>3. 복셀 다운샘플</h4><p>0.2 m 칸마다 평균점 하나 → 약 197만 점 (지도 점군)</p></div>
+  <div><h4>4. 맨해튼 지도 추출</h4><p>지도 점군에서 평면 목록, x 시그니처, 구획을 계산</p></div>
+</div>
+
+<h3 id="prior-model">① 선체 모델</h3>
+<p>실제 중형 벌크선(Supramax급) 비율로 이중저(double bottom) 구획을 만들었습니다. 모든 부재는 직육면체(일부 소품은 원기둥)라서 형상이 정확히 알려져 있습니다. 단위는 m입니다.</p>
+<div class="table-wrap"><table>
+  <tr><th>부재</th><th>방향</th><th>배치</th><th>위치추정에서의 역할</th></tr>
+  <tr><td>선체 크기</td><td>—</td><td>길이 190, 폭 32, 이중저 높이 2.0</td><td>지도 범위</td></tr>
+  <tr><td>늑판 (floor)</td><td><span class="cx">X 향</span></td><td>3.0 m 간격, 경감공(lightening hole) 있음, 4개마다 맨홀</td><td>3 m 주기 반복의 원인. x 시그니처의 작은 봉우리</td></tr>
+  <tr><td>횡격벽 (transverse bulkhead)</td><td><span class="cx">X 향</span></td><td>6개, 길이를 7등분 (≈ 27.1 m 간격), 바닥 근처에 1.0 × 1.2 m 개구</td><td>x 시그니처의 큰 봉우리 → 구획 7개</td></tr>
+  <tr><td>종늑골 (longitudinal)</td><td><span class="cy">Y 향</span></td><td>20개, 폭 방향 등간격, 바닥판·내저판 두 층 (T형 단면)</td><td>y 평면 목록</td></tr>
+  <tr><td>거더 (girder)</td><td><span class="cy">Y 향</span></td><td>5개 (중심선 1 + 양쪽 2), 이중저 전체 높이, 칸마다 구멍</td><td>y 평면 목록</td></tr>
+  <tr><td>바닥판 / 내저판</td><td><span class="cz">Z 향</span></td><td>z ≈ 0.01과 z ≈ 2.01</td><td>z 평면 목록</td></tr>
+  <tr><td>빌지 + 측벽</td><td>곡면 / Y 향</td><td>반경 16 m 사분원을 12조각으로 근사, 측벽 높이 16.8 m, 상부 개방</td><td>맨해튼 가정 밖 (곡면은 3단계에서 대부분 버려짐)</td></tr>
+</table></div>
+<p>여기에 도크 바닥, 킬 블록, 안벽, 물, 볼라드, 갱웨이, 갠트리 크레인과 조명을 배치해 조선소 장면을 완성했습니다. 이 장면 하나가 지도 점군과 시뮬레이션 데이터셋 양쪽의 원본입니다.</p>
+
+<h3 id="prior-pcd">② 지도 점군</h3>
+<p>3D 모델의 기하를 직접 읽어 <b>표면에서 점을 뽑았습니다</b>. 좁은 선체 내부는 로봇으로 다 훑기가 물리적으로 어렵고, 형상이 이미 정확히 알려져 있기 때문입니다.</p>
+<ul>
+  <li>각 부재의 실제 위치와 표면적을 먼저 구한 뒤, 면마다 넓이에 비례해 균일하게 무작위로 점을 뽑습니다(목표 밀도 300점/m²).</li>
+  <li>전체 점 수가 500만을 넘으면 밀도를 자동으로 낮춥니다. 이 장면은 240 × 60 m 도크 바닥 때문에 상한에 걸려 <b>5,011,668점</b>이 나왔습니다.</li>
+  <li>그다음 <b>0.2 m 복셀</b>마다 평균점 하나만 남겨 <b>1,967,133점</b>으로 줄였습니다. 위치추정에 쓰는 지도 점군은 이것입니다.</li>
+</ul>
+<div class="table-wrap"><table>
+  <tr><th>항목</th><th>형태</th></tr>
+  <tr><td>파일 형식</td><td>PCD (바이너리), 정렬되지 않은 점 목록</td></tr>
+  <tr><td>점마다 담긴 값</td><td>x, y, z (m) + 색(RGB, 모델의 부재 색)</td></tr>
+  <tr><td>좌표계</td><td>지도 프레임, Z-up. x = 선체 길이 방향(0…190 m), y = 폭 방향(0…32 m), z = 높이</td></tr>
+  <tr><td>크기</td><td>1,967,133점</td></tr>
+</table></div>
+
+<h3 id="prior-manhattan">③ 맨해튼 지도</h3>
+<p>197만 점짜리 지도 점군을 <b>"벽·바닥이 어디에 있는가"만 남긴 약 6 KB 요약</b>으로 줄인 것이 맨해튼 지도입니다. 원리는 하나뿐입니다. <b>점마다 어느 쪽을 향하는 면인지 표시하고, 같은 방향의 점들을 그 방향 좌표로 세어 히스토그램을 만든다.</b> 평면이 있는 자리에는 점이 몰려 히스토그램에 뾰족한 봉우리가 생기고, 그 봉우리 위치가 곧 평면 위치입니다.</p>
+<p>위치추정 2–3단계와 <b>같은 처리</b>(같은 법선 추정, 같은 축 분류)를 지도 전체에 한 번 돌려서 만들기 때문에, 나중에 스캔에서 뽑은 값과 같은 기준으로 비교할 수 있습니다. 아래 그림은 모두 실제 지도 점군으로 그렸습니다.</p>
+
+<div class="facts">
+  <div><h4>A. 법선 → 분류</h4><p>점마다 면의 방향(법선)을 구하고 <span class="cx">X</span> / <span class="cy">Y</span> / <span class="cz">Z</span> 향 중 하나로 표시</p></div>
+  <div><h4>B. 방향 맞추기</h4><p>벽이 좌표축과 정확히 나란한지 확인 (기준 회전각)</p></div>
+  <div><h4>C. Y·Z 평면 목록</h4><p><span class="cy">Y</span> 향 점은 y로, <span class="cz">Z</span> 향 점은 z로 세어 봉우리 위치를 기록</p></div>
+  <div><h4>D. X 시그니처와 구획</h4><p><span class="cx">X</span> 향 점은 x로 센 히스토그램 전체를 저장, 큰 봉우리로 구획을 나눔</p></div>
+</div>
+
+<h4>A. 점마다 "어느 쪽을 보는 면인가" 정하기</h4>
+<figure>
+  <img src="../static/images/mm_classify.png" alt="지도 점군의 두 단면에서 점, 법선 화살표, 축 분류 색을 나란히 비교한 그림" loading="lazy">
+  <figcaption>위: 높이 0.5–1.5 m를 잘라 위에서 본 모습. 아래: 늑판 두 장 사이(x ≈ 64.5 m)를 잘라 배 길이 방향으로 본 단면. 왼쪽부터 원래 점, 법선, 분류 결과입니다.</figcaption>
+</figure>
+<ol>
+  <li><b>법선 구하기 (b)</b>: 각 점에서 반경 0.3 m 안의 이웃 점들에 평면을 맞추고, 그 평면에 수직인 방향을 법선으로 씁니다. 늑판 위 점은 법선이 배 길이 방향(x), 거더 위 점은 폭 방향(y), 판 위 점은 위아래(z)를 가리킵니다.</li>
+  <li><b>분류 (c)</b>: 법선이 x, y, z 축 중 하나와 거의 나란하면(코사인 0.85 이상, 약 32° 이내) 그 축의 "향" 점이 됩니다. 셋 다 아니면 버립니다. 모서리, 부재가 만나는 곳, 경사가 큰 곡면 선체가 여기서 빠집니다(아래 단면의 회색 곡선 부분).</li>
+  <li>지도 전체 결과: <span class="cx">X 향 141,348점</span>, <span class="cy">Y 향 227,301점</span>, <span class="cz">Z 향 1,458,440점</span>, 버림 135,013점. 바닥판과 내저판이 넓어서 Z 향이 압도적으로 많습니다.</li>
+</ol>
+
+<h4>B. 지도의 방향 맞추기 (기준 회전각)</h4>
+<figure>
+  <img src="../static/images/mm_yaw.png" alt="벽 법선 방향의 극좌표 히스토그램과 4배 각도 히스토그램" loading="lazy">
+  <figcaption>(a) 수직 벽 점(법선이 거의 수평인 점)의 법선 방향 분포. (b) 같은 각도를 4배 하면 네 봉우리가 한 곳으로 겹칩니다. 화살표는 평균 벡터입니다.</figcaption>
+</figure>
+<ul>
+  <li>맨해튼 구조에서는 벽 법선이 0°, 90°, 180°, 270° 네 방향에 몰립니다(a). 이 넷은 90° 차이라 그냥 평균내면 서로 상쇄됩니다.</li>
+  <li>각도를 <b>4배</b> 하면 네 방향이 모두 같은 각도가 되어(b), 평균 벡터의 방향을 4로 나누면 "벽이 축에서 얼마나 돌아가 있는가"가 나옵니다. 위치추정 1단계(yaw 투표)와 똑같은 계산입니다.</li>
+  <li>이 지도는 원래 축에 맞춰 만들어서 보정각이 사실상 0입니다(지도 파일 값 9.1 × 10⁻⁵ rad). 평균 벡터의 길이 0.94는 벽 법선이 거의 완벽하게 네 방향에 모여 있다는 뜻입니다.</li>
+</ul>
+
+<h4>C. 평면 목록 만들기: y와 z 히스토그램의 봉우리</h4>
+<figure>
+  <img src="../static/images/mm_planes.png" alt="배 길이 방향으로 겹쳐 본 Y 향, Z 향 점과 y, z 히스토그램, 추출된 평면 위치" loading="lazy">
+  <figcaption>배 전체를 길이 방향으로 겹쳐 본 단면입니다. 파란 점은 Y 향, 초록 점은 Z 향입니다. 아래는 Y 향 점의 y 히스토그램, 오른쪽은 Z 향 점의 z 히스토그램입니다(둘 다 로그 눈금). 점선과 삼각형은 뽑힌 평면입니다.</figcaption>
+</figure>
+<ol>
+  <li><span class="cy">Y 향 점들의 y 좌표</span>만 모아 0.1 m 칸으로 셉니다. 세로로 선 거더·종늑골 한 장이 같은 y에 수천 점을 쌓아 높은 막대가 됩니다.</li>
+  <li>가장 높은 칸을 고르고, 주변 ±2칸의 가중 평균으로 정확한 위치를 구해 평면 하나로 기록합니다. 그 칸 ±3칸(±0.3 m)은 지워서 같은 평면이 두 번 뽑히지 않게 합니다.</li>
+  <li>남은 가장 높은 칸이 <b>200점</b> 밑으로 떨어질 때까지 반복합니다.</li>
+  <li><span class="cz">Z 향 점</span>도 z 좌표로 똑같이 합니다. 바닥판(z ≈ 0), 내저판(z ≈ 2 m), 도크 바닥(z ≈ −1.5, −2.5 m), 도크를 가로지르는 크레인 보의 아래·윗면(z ≈ 22, 23 m) 등이 잡힙니다.</li>
+</ol>
+<p>결과는 숫자 목록 두 줄입니다. 위치추정 3단계에서는 스캔에서 같은 방식으로 뽑은 평면 쌍의 간격을 이 목록의 간격과 맞춰 보며 y, z 후보를 만듭니다.</p>
+
+<h4>D. X 시그니처와 구획</h4>
+<figure>
+  <img src="../static/images/mm_signature.png" alt="X 향 점의 측면도, 배 전체의 x 히스토그램과 구획 경계, 구획 c=2 확대" loading="lazy">
+  <figcaption>(a) X 향 점을 옆에서 본 모습. (b) x 시그니처 전체와 30% 문턱선, 구획 c=0–6. (c) 데이터셋을 찍은 구획 c=2 확대(막대 높이는 잘랐음).</figcaption>
+</figure>
+<ul>
+  <li>x 방향은 y, z와 다르게 다룹니다. 늑판이 3 m마다 똑같이 반복되어 "봉우리 위치 목록"만으로는 어느 늑판인지 구분할 수 없기 때문입니다. 그래서 <span class="cx">X 향 점</span>의 x 히스토그램(0.1 m 칸) <b>전체</b>를 그대로 저장합니다. 이것이 x 시그니처, 즉 "배 길이 방향의 지문"입니다.</li>
+  <li>(c)처럼 구획 안에는 3 m 간격의 늑판 봉우리(칸당 수백 점)가 있고, 양 끝에 격벽 봉우리(칸당 1만 점 이상)가 섭니다. 위치추정 5단계는 스캔에서 만든 짧은 시그니처를 이 패턴 위에서 밀어 보며 맞는 x를 찾습니다.</li>
+  <li><b>구획 검출 (b)</b>: 시그니처 최대값의 30%를 넘는 칸을 격벽으로 보고, 1 m 이내 칸은 묶어 가중 중심을 격벽 위치로 씁니다. 늑판 봉우리는 문턱에 한참 못 미쳐 격벽만 남습니다. 격벽 6개(x ≈ 27.1, 54.2, 81.4, 108.5, 135.7, 162.8 m) 사이가 구획 7개가 되고, 데이터셋은 c = 2(x 54.2–81.4 m)에서 찍었습니다.</li>
+  <li>(a)의 x ≈ 39, 150 m에 있는 높은 주황 기둥은 도크를 가로지르는 크레인 두 대(높이 약 23 m)입니다. 봉우리가 문턱에 못 미쳐 격벽으로 잡히지 않습니다.</li>
+</ul>
+
+<h4>지도 파일에 남는 것</h4>
+<div class="table-wrap"><table>
+  <tr><th>항목</th><th>내용</th><th>이 지도의 값</th></tr>
+  <tr><td>기준 회전각</td><td>B에서 구한 보정각</td><td>9.1 × 10⁻⁵ rad</td></tr>
+  <tr><td><span class="cy">Y 평면 목록</span></td><td>C의 y 봉우리 위치</td><td>29개 (−20.0 … 51.98 m)</td></tr>
+  <tr><td><span class="cz">Z 평면 목록</span></td><td>C의 z 봉우리 위치</td><td>11개 (−2.45 … 23.25 m)</td></tr>
+  <tr><td><span class="cx">X 시그니처</span></td><td>D의 히스토그램 전체</td><td>x = −25.0 m부터 0.1 m 칸 2,401개</td></tr>
+</table></div>
+<p>구획은 파일에 따로 저장하지 않고, 지도를 읽을 때 x 시그니처에서 매번 다시 계산합니다. 또 6–8단계 점수 계산을 위해, 지도 점군을 기준 회전각만큼 돌려 최근접 탐색 구조를 만들고 지도 점마다 법선(이웃 12점)을 미리 계산해 둡니다.</p>
+<div class="note"><b>Y 평면 개수 주의.</b> 실험에 쓴 지도 파일(10월 6일 생성)에는 Y 평면이 29개인데, 지금 코드로 같은 지도 점군을 다시 처리하면 <b>39개</b>가 나옵니다. 위 그림 C도 다시 처리한 결과라서 39개입니다. 늘어난 10개는 y ≈ 3.1, 4.6, 6.1, 12.2, 13.7, 18.3, 19.8, 25.9, 27.5, 29.0 m의 종통재 면이고, 나머지 29개와 Z 평면 11개, x 시그니처는 거의 같습니다. 지도 파일을 만든 뒤에 코드나 설정이 바뀐 것으로 보이며, 원인은 확인하지 못했습니다.</div>
+</section>
+
+<!-- ================================================================ -->
+<section id="dataset">
+<h2>스캔 데이터셋 만들기</h2>
+<p>영상과 정량 평가에 쓴 스캔은 모두 Isaac Sim에서 RTX 라이다로 찍었습니다(no_yaw, yes_yaw 각 31장). 근사 레이캐스트가 아니라 렌더러가 3D 모델에 직접 쏜 센서 출력입니다.</p>
+<figure>
+  <video controls muted loop playsinline preload="metadata" poster="../static/videos/dataset_scans_poster.jpg">
+    <source src="../static/videos/dataset_scans.mp4" type="video/mp4">
+  </video>
+  <figcaption>데이터셋 시각화 영상 (1:04). 라이다 사양 → 선체 전체와 기록 구간(구획 c = 2의 이중저) → (a) no_yaw, (b) yes_yaw 순서입니다. 각 스캔을 정답 포즈 위치에 하나씩 놓고 카메라가 천천히 돕니다. 지도는 CAD 부재 형상으로 그렸고, 바닥판과 내저판은 잘라냈으며 높이는 2.5배 과장했습니다.</figcaption>
+</figure>
+
+<h3>녹화 환경</h3>
+<ul>
+  <li><b>라이다</b>: 회전형 3D 라이다(Isaac Sim 예제 Rotary 설정), 10 Hz. 물리 시뮬레이션은 60 Hz.</li>
+  <li><b>정답 포즈</b>: 매 프레임 시뮬레이터 안의 라이다 실제 위치·자세를 읽어 ROS 2 TF(map → lidar_gt)로 내보냅니다.</li>
+  <li><b>같은 시계</b>: 점군 타임스탬프를 시뮬레이션 시간이 아니라 정답 TF와 같은 시스템 시간으로 찍어서, 스캔마다 그 순간의 정답을 정확히 짝지을 수 있습니다.</li>
+  <li><b>조작</b>: 시뮬레이터 창에서 키보드로 라이다를 옮깁니다. 이동 1 m/s(앞뒤, 좌우, 위아래), 회전 45°/s(yaw, pitch). 원하는 자리에 멈추고 저장 키를 누르면 녹화 요청이 나갑니다.</li>
+</ul>
+
+<h3>저장 키를 눌렀을 때 일어나는 일</h3>
+<ol>
+  <li>요청 시각 + 0.15 s 이후에 찍힌 <b>첫 번째 완전한 스캔</b>을 고릅니다. 한 바퀴가 0.1 s이므로, 키를 누를 때 이미 돌고 있던 스캔은 쓰지 않습니다.</li>
+  <li>스캔 시각 앞뒤의 정답 샘플 두 개로 위치는 선형 보간, 자세는 쿼터니언 정규화 보간(nlerp)을 합니다.</li>
+  <li>아래 조건 중 하나라도 어기면 <b>저장을 거부하고 이유를 알려 줍니다</b>. 위치추정기가 정지·수평 스캔을 가정하고, 움직이며 찍은 스캔은 모션 왜곡도 생기기 때문입니다.</li>
+</ol>
+<div class="table-wrap"><table>
+  <tr><th>검사</th><th class="num">기준</th><th>설명</th></tr>
+  <tr><td>정답 시간차</td><td class="num">≤ 0.05 s</td><td>스캔 시각을 감싸는 두 정답 샘플 중 먼 쪽까지의 시간</td></tr>
+  <tr><td>이동 속도</td><td class="num">≤ 0.02 m/s</td><td>스캔 직전 0.3 s 동안의 최대값</td></tr>
+  <tr><td>회전 속도</td><td class="num">≤ 1.0 °/s</td><td>같은 구간의 yaw 변화율 최대값</td></tr>
+  <tr><td>기울기</td><td class="num">≤ 2.0°</td><td>센서 수직축과 연직선 사이 각도</td></tr>
+  <tr><td>대기 시간</td><td class="num">3 s</td><td>쓸 만한 스캔이 안 오면 요청 취소</td></tr>
+</table></div>
+<ol start="4">
+  <li>통과하면 무효 점과 원점 근처(반경 0.1 m 이내, 반사 없음) 점을 버리고 저장합니다.</li>
+</ol>
+
+<h3>데이터셋 형태</h3>
+<p>데이터셋 하나는 스캔 파일 묶음, 정답 표 하나, 설정 기록 하나로 이루어집니다.</p>
+<div class="table-wrap"><table>
+  <tr><th>구성</th><th>내용</th></tr>
+  <tr><td>스캔 파일 (31개)</td><td>스캔 1장당 PCD 파일 1개. <b>센서 좌표계</b>의 x, y, z만 담김(색 없음). 18만–45만 점</td></tr>
+  <tr><td>정답 표 (CSV)</td><td>스캔 1장당 1줄. 아래 열 참고</td></tr>
+  <tr><td>설정 기록 (JSON)</td><td>생성 시각, 사용한 토픽과 좌표계, 포즈 규약, 위 검사 기준값</td></tr>
+</table></div>
+<h4>정답 표의 열</h4>
+<div class="table-wrap"><table>
+  <tr><th>열</th><th>뜻</th><th>예 (no_yaw 2번 = Case B)</th></tr>
+  <tr><td>번호, 파일 이름</td><td>스캔 식별</td><td class="mono">2, 000002</td></tr>
+  <tr><td>타임스탬프</td><td>스캔 시각 (s)</td><td class="mono">1791266278.298</td></tr>
+  <tr><td>x, y, z</td><td>정답 위치 (지도 좌표, m)</td><td class="mono">63.613, 18.419, 0.532</td></tr>
+  <tr><td>쿼터니언 (4개)</td><td>정답 자세</td><td class="mono">0, 0, 0, 1</td></tr>
+  <tr><td>yaw</td><td>센서 x축의 방향각 (rad)</td><td class="mono">0.0</td></tr>
+  <tr><td>기울기, 속도, 회전 속도, 정답 시간차</td><td>위 검사에서 잰 실제 값</td><td class="mono">0°, 0, 0, 0.009 s</td></tr>
+  <tr><td>점 수, 센서 좌표계 이름</td><td>저장된 점 개수</td><td class="mono">314,633</td></tr>
+</table></div>
+<p>포즈의 의미: <span class="mono">p_지도 = R(q) · p_스캔 + (x, y, z)</span></p>
+
+<h3>두 데이터셋의 구성</h3>
+<div class="table-wrap"><table>
+  <tr><th>데이터셋</th><th class="num">스캔</th><th class="num">x 범위 [m]</th><th class="num">y 범위 [m]</th><th class="num">z 범위 [m]</th><th class="num">yaw</th><th class="num">스캔당 점 수</th></tr>
+  <tr><td>no_yaw</td><td class="num">31</td><td class="num">55.6 – 76.0</td><td class="num">12.1 – 20.0</td><td class="num">0.53 – 1.05</td><td class="num">0° 고정</td><td class="num">183k – 453k</td></tr>
+  <tr><td>yes_yaw</td><td class="num">31</td><td class="num">57.5 – 79.4</td><td class="num">12.8 – 21.2</td><td class="num">1.03 – 1.21</td><td class="num">−172.9° … +122.6°</td><td class="num">237k – 454k</td></tr>
+</table></div>
+<ul>
+  <li>두 데이터셋 모두 구획 c = 2 (x ∈ [54.2, 81.4)) 안의 이중저 공간에서 찍었습니다. 기울기는 전부 0°, 정답 시간차는 최대 13 ms(no_yaw), 20 ms(yes_yaw)입니다.</li>
+  <li>no_yaw는 yaw를 0°로 두고 위치만 바꿔 가며, yes_yaw는 방향도 함께 돌려 가며 찍었습니다.</li>
+  <li>영상의 "ground truth"는 이 표의 값을 지도 기준 좌표로 바꾼 뒤 ICP로 한 번 정밀화한 것이라 조금 다릅니다. 예: Case B의 z는 표에서 0.532 m, 영상에서 0.516 m.</li>
+</ul>
+</section>
+
+<!-- ================================================================ -->
+<section id="s1" class="stage">
+<div class="stage-head"><span class="no">1</span><h2>입력: 라이다 스캔 한 장</h2></div>
+<figure>
+  <img src="../static/images/input_end.jpg" alt="센서 프레임의 스캔 점군(높이 z로 색칠)과 오른쪽 위 구획 사전정보 c=2" loading="lazy">
+  <figcaption>영상 0:14–0:21. 스캔은 각도 순서로 한 바퀴 그려지며 나타납니다. 오른쪽 위 작은 지도는 구획 사전정보 c = 2.</figcaption>
+</figure>
+<p>센서 좌표계로 찍힌 점군 하나가 입력입니다. 포즈 (x, y, z, yaw)는 모르고, roll = pitch = 0으로 가정합니다.</p>
+<ul>
+  <li>Case B 원본 314,633점을 <b>0.1 m 복셀 필터</b>로 줄여 5,750점이 됩니다. (Case A: 372,493 → 5,956점)</li>
+  <li>그림의 색은 센서 기준 높이 z입니다(−1.5 … 2.5 m).</li>
+</ul>
+<p>최종 포즈의 의미는 <span class="mono">p_지도 = R_z(yaw) · p_센서 + (x, y, z)</span>입니다.</p>
+</section>
+
+<!-- ================================================================ -->
+<section id="s2" class="stage">
+<div class="stage-head"><span class="no">2</span><h2>Yaw 가설: 벽 법선 투표 (mod 90°)</h2></div>
+<figure>
+  <img src="../static/images/yaw_end.jpg" alt="왼쪽: 벽 법선 방향 θ의 극좌표 히스토그램, 오른쪽: 4θ로 접은 히스토그램" loading="lazy">
+  <figcaption>영상 0:21–0:30. 왼쪽은 벽 법선 방향 θ의 분포(봉우리 4개), 오른쪽은 4θ로 접은 분포(봉우리 1개). 주황 선이 4개의 yaw 가설입니다.</figcaption>
+</figure>
+
+<h3>직관</h3>
+<p>방 안의 벽은 네 방향(동서남북)을 바라봅니다. 벽 법선의 방향 θ를 모아 보면 90° 간격의 봉우리 4개가 생깁니다. 그냥 평균을 내면 이 봉우리들이 서로 상쇄되어 의미가 없습니다. 그래서 각도에 4를 곱하면, 90° 차이 나는 네 방향이 360° 차이가 되어 <b>한 점으로 겹칩니다</b>. 겹친 방향의 평균을 구하고 다시 4로 나누면 "주된 벽 방향, mod 90°"가 나옵니다.</p>
+
+<h3>계산</h3>
+<ol>
+  <li>스캔 점마다 반경 0.3 m 이웃으로 표면 법선 n을 추정합니다.</li>
+  <li>|n_z| &lt; 0.2인 점만 수직 벽으로 봅니다(Case B: 2,567점). 50점 미만이면 실패로 처리합니다.</li>
+  <li>원형 통계(circular statistics)로 평균을 냅니다.</li>
+</ol>
+<div class="formula">θ_i = atan2(n_y, n_x)
+C = Σ cos(4θ_i),   S = Σ sin(4θ_i)
+φ = atan2(S, C) / 4                  주된 벽 방향, (−45°, 45°]
+ψ_k = −φ + k·90°,   k = 0, 1, 2, 3    4개의 yaw 가설
+투표 강도 = √(C² + S²) / N            0…1, 1이면 모든 벽이 정확히 일치</div>
+<p>−φ만큼 돌리면 주된 벽 법선이 좌표축에 놓입니다. 나머지 세 개는 같은 조건을 만족하는 다른 90° 회전입니다. 법선 투표만으로는 이 넷을 구별할 수 없으므로 <b>네 가설을 모두 다음 단계로 넘깁니다</b>.</p>
+
+<div class="facts">
+  <div><h4>Case B 실제 값</h4><p>ψ = −0.2°, 89.8°, 179.8°, −90.2°<br>투표 강도 0.92<br>정답 yaw ≈ 0.0° → ψ₀가 가장 가까움</p></div>
+  <div><h4>왜 정답과 0.2° 차이?</h4><p>법선 추정 잡음 때문입니다. 남은 오차는 7단계 ICP가 yaw까지 함께 보정합니다.</p></div>
+</div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s3" class="stage">
+<div class="stage-head"><span class="no">3</span><h2>축 분류: 점마다 X / Y / Z 향 면 라벨</h2></div>
+<figure>
+  <img src="../static/images/classify.jpg" alt="4개 yaw 가설 각각에서 X/Y/Z 향 점을 색으로 구분한 2x2 그림" loading="lazy">
+  <figcaption>영상 0:30–0:38. 네 가설 각각으로 스캔을 돌린 뒤 점을 분류한 결과. <span class="cx">주황 = X 향</span>(늑판, 격벽), <span class="cy">파랑 = Y 향</span>(종방향 벽), <span class="cz">청록 = Z 향</span>(갑판).</figcaption>
+</figure>
+<p>각 yaw 가설 ψ_k로 스캔을 z축 기준 회전하면 벽이 지도 축과 나란해집니다. 그다음 점마다 법선(반경 0.3 m)을 다시 구하고, 법선이 어느 축을 향하는지로 라벨을 붙입니다.</p>
+<div class="formula">가장 큰 성분 = max(|n_x|, |n_y|, |n_z|)
+0.85 미만  → 버림 (모서리, 곡면, 잡음)
+그 외      → 가장 큰 성분의 축으로 분류 (X / Y / Z 향)</div>
+<ul>
+  <li><span class="cx">X 향 점</span>: 배를 가로지르는 면, 즉 늑판과 격벽. 5단계 길이방향 시그니처의 재료입니다.</li>
+  <li><span class="cy">Y 향 점</span>: 배 길이 방향으로 뻗은 벽(종늑골, 거더). 4단계 y 추정에 씁니다.</li>
+  <li><span class="cz">Z 향 점</span>: 바닥판, 내저판. 4단계 z 추정에 씁니다.</li>
+</ul>
+<p>ψ₀와 ψ₂(180° 차이)는 같은 점들이 같은 축으로 분류되고 좌표 부호만 바뀝니다. ψ₁, ψ₃(90° 차이)는 X와 Y가 뒤바뀝니다. Case B에서 ψ₀의 X/Y/Z 점 수는 1,390 / 1,344 / 2,639, ψ₁은 1,344 / 1,390 / 2,639입니다.</p>
+</section>
+
+<!-- ================================================================ -->
+<section id="s4" class="stage">
+<div class="stage-head"><span class="no">4</span><h2>단면 투표: y, z 이동 후보</h2></div>
+<figure>
+  <img src="../static/images/cross_end.jpg" alt="y와 z 각각의 후보 이동량 가중 투표 히스토그램과 순위가 매겨진 후보 표시" loading="lazy">
+  <figcaption>영상 0:38–0:47. 위가 y, 아래가 z. ▼와 숫자가 남긴 후보(순위순), 점선이 정답입니다. ψ₀(정답에 가장 가까운 yaw)에 대해서만 그렸습니다.</figcaption>
+</figure>
+
+<h3>(a) 스캔에서 평면 뽑기</h3>
+<p>Y 향 점들의 y 좌표(또는 Z 향 점들의 z 좌표)로 0.1 m 히스토그램을 만들고, 봉우리를 반복해서 뽑습니다.</p>
+<ol>
+  <li>가장 높은 칸을 찾습니다. 30점 미만이면 멈춥니다.</li>
+  <li>그 칸 ±2칸의 가중 중심으로 평면 위치를 칸 크기보다 정밀하게 정합니다.</li>
+  <li>±3칸을 0으로 지우고 1로 돌아갑니다.</li>
+</ol>
+<p>Case B(ψ₀): 스캔에서 Y 평면 5개, Z 평면 4개. 지도에는 Y 평면 29개, Z 평면 11개.</p>
+
+<h3>(b) 모든 짝이 투표</h3>
+<p>스캔의 평면 하나가 지도의 평면 하나와 같은 것이라면, 이동량은 <span class="mono">t = 지도 평면 위치 − 스캔 평면 위치</span>입니다. 어느 짝이 맞는지 모르니 <b>모든 짝(5 × 29개 등)이 투표</b>하고, 표의 무게는 스캔 평면의 점 수입니다. 맞는 이동량에서는 여러 평면 짝이 같은 값에 투표하므로 표가 쌓입니다.</p>
+<div class="formula">표 = (지도 평면 − 스캔 평면,  무게 = 스캔 평면의 점 수),  모든 짝에 대해
+0.1 m 칸으로 묶고, 칸 점수 = 자기 + 좌우 한 칸의 무게 합 (경계에 걸친 표 합산)
+무거운 순서로, 이미 고른 것과 0.5 m 이상 떨어진 칸만 채택 → 최대 6개
+후보 값 = 그 칸 주변 표들의 가중 평균,  σ = 가중 표준편차 (최소 0.02 m)</div>
+<div class="note">
+  <p><b>최빈값 하나만 쓰지 않는 이유</b>: 지도에 갑판과 벽이 많아서 2등, 3등 이동량이 맞는 경우가 있습니다. 그래서 축마다 <b>상위 6개</b>를 남깁니다.</p>
+</div>
+<div class="facts">
+  <div><h4>Case B · y 후보 (ψ₀)</h4><p class="mono">18.41, 7.78, 29.07, 13.09, 23.76, 32.24</p><p>정답 y = 18.42 → 1위</p></div>
+  <div><h4>Case B · z 후보 (ψ₀)</h4><p class="mono">0.72, −0.26, 1.69, −2.35, 22.1, −1.38</p><p>정답 z = 0.52 → 1위가 0.2 m 차이. 7단계 ICP가 메웁니다.</p></div>
+</div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s5" class="stage">
+<div class="stage-head"><span class="no">5</span><h2>길이방향 상관: 구획 안 x 후보</h2></div>
+<figure>
+  <img src="../static/images/longi_end.jpg" alt="위: 배 전체의 X 향 점 밀도 프로필, 아래: 정규화 상호상관 곡선과 구획 안 봉우리 20개" loading="lazy">
+  <figcaption>영상 0:47–0:58. 위는 배의 프로필(지도), 회색 덩어리는 미끄러지는 스캔 프로필. 아래는 위치별 정규화 상호상관(NCC). 파란 음영이 구획 c = 2, 주황 점이 x 후보, 점선이 정답 x.</figcaption>
+</figure>
+
+<h3>직관</h3>
+<p>X 향 점(늑판, 격벽)의 x 좌표 히스토그램은 바코드처럼 생겼습니다. 스캔에도 작은 바코드가 있습니다. 작은 바코드를 큰 바코드 위에서 밀어 가며 가장 잘 맞는 자리를 찾는 것이 이 단계입니다.</p>
+
+<h3>계산</h3>
+<ol>
+  <li><b>스캔 시그니처</b>: 3단계에서 나온 X 향 점의 x 좌표를 0.1 m 히스토그램으로 만듭니다(yaw 가설마다 따로).</li>
+  <li><b>정규화 상호상관(NCC)</b>: 지도 시그니처 위의 모든 이동량에서, 두 신호의 평균을 빼고 상관계수를 구합니다. 값은 −1…1이고, 밀도의 절대 크기와 무관하게 패턴 모양만 비교합니다.</li>
+</ol>
+<div class="formula">L = 스캔 시그니처 (길이 n),   G = 지도 시그니처
+NCC(s) = Σ_i (L_i − L̄)(G_{s+i} − Ḡ_s)  /  ( ‖L − L̄‖ · ‖G_{s…s+n} − Ḡ_s‖ )
+x 후보 = 이동량 s를 미터로 바꾼 위치</div>
+<ol start="3">
+  <li><b>구획 사전정보가 있을 때</b>: 구획 [54.2, 81.4) 밖의 이동량은 지웁니다. 남은 곡선에서 가장 높은 곳을 뽑고 ±1 m를 지우는 것을 반복해 <b>구획 안의 봉우리를 최대 40개</b>까지 전부 후보로 씁니다.</li>
+  <li>사전정보가 없으면 배 전체에서 상위 5개만 씁니다.</li>
+</ol>
+<div class="note warn">
+  <p><b>여기가 모호함의 근원입니다.</b> 그림에서 NCC 봉우리가 약 3 m마다 서 있습니다. 정답(점선) 근처 봉우리(0.80)보다 오른쪽 봉우리(66.6 m, 0.84)가 더 높습니다. 즉 상관 1등을 그냥 고르면 틀립니다. 그래서 봉우리를 모두 후보로 넘기고, 판정은 6–8단계의 실제 점군 비교에 맡깁니다.</p>
+</div>
+<div class="facts">
+  <div><h4>Case B</h4><p>yaw 가설마다 구획 안 봉우리 19–20개 (ψ₀: 20개)</p></div>
+</div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s6" class="stage">
+<div class="stage-head"><span class="no">6</span><h2>가설 생성과 선별 (screening)</h2></div>
+<figure>
+  <img src="../static/images/screen0.jpg" alt="구획 지도 위에 2,772개 가설을 선별 점수로 색칠한 산점도" loading="lazy">
+  <figcaption>영상 0:58–1:04. 2,772개 전체 가설(100점으로 매긴 선별 점수). 진할수록 점수가 높고, 검은 원이 정답.</figcaption>
+</figure>
+<figure>
+  <img src="../static/images/screen1.jpg" alt="상위 150개 가설을 2,000점 기준 점수로 다시 매긴 산점도" loading="lazy">
+  <figcaption>영상 1:04–1:10. 상위 150개만 점 2,000개로 다시 점수 매김.</figcaption>
+</figure>
+
+<h3>후보 조합</h3>
+<p>yaw 가설 × x 봉우리 × y 후보 × z 후보의 모든 조합이 완전한 포즈 하나입니다.</p>
+<div class="formula">Case B:  4 yaw × (20 + 19 + 19 + 19) x × 6 y × 6 z  =  77 × 36  =  2,772개 포즈</div>
+
+<h3>점수: 스캔이 지도 위에 얼마나 잘 얹히나</h3>
+<p>포즈로 스캔 점을 지도 좌표로 옮긴 뒤, 각 점에서 가장 가까운 지도 점까지 거리 d를 잽니다.</p>
+<div class="formula">점 i의 점수 = max(0, 1 − d_i² / τ²),   τ = 0.25 m
+포즈 점수   = 점 점수들의 평균            0…1</div>
+<p>지도 위에 정확히 있으면 1, 0.25 m 이상 떨어지면 0이고, 그 사이는 부드럽게 줄어듭니다.</p>
+<div class="note">
+  <p><b>왜 0/1 인라이어 개수가 아니라 부드러운 점수인가</b>: 딱 잘리는 임계값으로는 "정확히 맞은 포즈"와 "모든 점이 임계값 바로 안쪽에 걸친 타협 포즈"를 구별할 수 없습니다. 예를 들어 구별 포인트가 되는 늑판 하나가 다른 늑판에서 0.24 m 떨어져 있는 경우입니다. ICP는 이런 타협점을 아주 잘 찾아내기 때문에 이것을 막아야 합니다.</p>
+</div>
+
+<h3>단계별로 좁히기</h3>
+<p>점수용 점은 무작위가 아니라 <b>일정한 간격</b>으로 뽑습니다. 그래야 같은 스캔은 항상 같은 점수가 나오고, 모든 가설이 같은 점 위에서 비교됩니다.</p>
+<div class="funnel">
+  <div><span class="n">2,772</span><span class="d">전체 조합, 스캔 점 100개로 빠르게 점수</span></div>
+  <div><span class="n">150</span><span class="d">상위만 점 2,000개로 재점수</span></div>
+  <div><span class="n">25</span><span class="d">서로 다른 포즈만, ICP 대상</span></div>
+  <div><span class="n">10</span><span class="d">최종 가설 (Case B)</span></div>
+</div>
+<p><b>"서로 다른 포즈"의 기준</b>: 위치가 1.0 m 넘게 다르거나 yaw가 약 9.7° 넘게 다르면 별개로 봅니다. (y, z) 후보가 여러 개라 같은 자리에 여러 가설이 겹치는 경우가 많아서, 점수순으로 훑으며 대표 하나씩만 남깁니다.</p>
+</section>
+
+<!-- ================================================================ -->
+<section id="s7" class="stage">
+<div class="stage-head"><span class="no">7</span><h2>ICP 정밀화: 4-DoF point-to-plane</h2></div>
+<figure>
+  <img src="../static/images/icp_end.jpg" alt="왼쪽: 25개 후보 포즈의 시작점과 현재 위치, 오른쪽: 정답에 가장 가까운 후보의 스캔이 지도 벽에 맞춰진 확대도" loading="lazy">
+  <figcaption>영상 1:10–1:19. 왼쪽은 25개 후보(○ 시작, ▶ 현재), 오른쪽은 정답에 가장 가까운 후보를 확대해 지도 벽(회색) 위에 스캔(파랑)을 겹친 모습. 확대도는 센서 높이 주변(z − 0.6 … z + 1.0 m)만 그려 바닥과 천장을 뺐습니다.</figcaption>
+</figure>
+<p>25개 대표 포즈를 각각 ICP로 미세 조정합니다. 후보들은 시그니처 칸 크기(0.1 m)나 평면 투표 잡음 때문에 수십 cm 어긋나 있을 수 있습니다.</p>
+<h3>한 번의 반복에서 하는 일</h3>
+<ol>
+  <li>스캔 점 1,000개를 현재 포즈로 옮기고, 가장 가까운 지도 점과 그 점의 법선을 찾습니다.</li>
+  <li><b>대응 허용 거리</b>를 반복에 따라 0.8 m에서 0.25 m로 선형으로 줄입니다. 처음엔 멀리 어긋난 대응도 받아 주고, 끝에는 정말 지도 위에 있는 점만 듣습니다.</li>
+  <li>점-평면 거리 <span class="mono">r = n · (p − q)</span>를 최소화하는 4자유도 증분 [Δyaw, Δx, Δy, Δz]를 선형화해서 풉니다.</li>
+</ol>
+<div class="formula">c = 대응점들의 중심   (이 점을 기준으로 회전 → yaw와 이동이 서로 섞이지 않음)
+J = [ n_x·(−(p−c)_y) + n_y·(p−c)_x ,  n_x ,  n_y ,  n_z ]
+(Σ JᵀJ + λI) · δ = −Σ Jᵀ r            λ는 아주 작은 감쇠항
+yaw ← yaw + δ₀,   위치 ← c를 중심으로 δ₀ 회전 + (δ₁, δ₂, δ₃)</div>
+<ul>
+  <li><b>점-점 대신 점-평면</b>: 두 점군 모두 같은 면을 띄엄띄엄 샘플한 것이라, 점-점 ICP는 처음 옆에 있던 지도 점에 붙어 버려 지도 점 간격만큼 오차가 남습니다. 법선 방향 거리만 재면 점들이 벽을 따라 미끄러질 수 있습니다.</li>
+  <li><b>작은 감쇠항 λ</b>: 스캔이 구속하지 못하는 방향(예: 특징 없는 복도의 길이방향)이 발산하지 않고 0에 머물게 합니다.</li>
+  <li>대응이 50개 미만이면 정밀화를 포기하고 원래 포즈를 돌려줍니다.</li>
+  <li>반복은 10회입니다. 영상의 경로는 시작점 포함 11개 포즈입니다.</li>
+</ul>
+<p>정밀화 후 점수를 다시 매기고 정렬한 뒤, ICP가 두 후보를 같은 자리로 끌어왔을 수 있으므로 "서로 다른 포즈" 병합을 한 번 더 합니다.</p>
+</section>
+
+<!-- ================================================================ -->
+<section id="s8" class="stage">
+<div class="stage-head"><span class="no">8</span><h2>Paired-z 선택: 1등이 배제할 수 없는 포즈는 모두 남긴다</h2></div>
+<figure>
+  <img src="../static/images/select1.jpg" alt="25개 후보의 paired z 막대그래프와 z=3 기준선, 오른쪽은 1등과 가장 가까운 경쟁자의 점별 비교" loading="lazy">
+  <figcaption>영상 1:19–1:32. 왼쪽: 25개 후보의 1등 대비 paired z(12에서 잘라 표시). 진한 파랑 = 유지, 연한 파랑 = z &lt; 3이지만 최대 10개 제한에 걸림, 회색 = 탈락. 오른쪽: 1등과 가장 비슷한 경쟁자(Δx = +12.0 m)의 점별 비교.</figcaption>
+</figure>
+
+<h3>직관</h3>
+<p>두 포즈의 평균 점수 차이만 보면 안 됩니다. 스캔 점 대부분(바닥, 종방향 벽)은 어느 후보에서나 똑같이 잘 맞아서 차이를 희석시킵니다. 3 m 옆 늑판 칸으로 옮겨도 대부분의 점은 그대로 맞습니다. 정말 판단 근거가 되는 건 <b>두 포즈에서 다르게 맞는 소수의 점</b>이고, 그 점들이 <b>얼마나 일관되게</b> 1등 편을 드는지가 중요합니다.</p>
+
+<h3>계산 (짝지은 t-검정과 같은 형태)</h3>
+<p>같은 스캔 점들(Case B는 2,875개)에서 점마다 점수를 구하고 짝을 지어 뺍니다.</p>
+<div class="formula">a_i = 1등 포즈에서 점 i의 점수,   b_i = 경쟁 포즈에서 점 i의 점수
+d_i = a_i − b_i
+z   = 평균(d) / ( 표준편차(d) / √n )      평균 차이를 표준오차 단위로
+
+z ≥ 3   → 경쟁자 탈락 (1등이 확실히 이김)
+z &lt; 3   → 유지 (배제할 수 없음), 최대 10개까지
+가중치 ∝ exp(−z²/2),  합이 1이 되게 정규화</div>
+<ul>
+  <li>평균 차이가 사실상 0(10⁻⁹ 미만)이면 z = 0으로 둡니다. 완전히 반복되는 구조 위의 두 포즈는 점수가 계산 오차 수준으로만 다른데, 이것을 거의 0인 표준오차로 나누면 압승처럼 보이기 때문입니다.</li>
+  <li>이웃 점들은 서로 상관되어 있어서 <b>z = 3은 p-value가 아니라 경험적으로 정한 기준</b>입니다.</li>
+</ul>
+
+<h3>Case B에서 일어난 일</h3>
+<div class="table-wrap"><table>
+  <tr><th>순위</th><th class="num">paired z</th><th>판정</th></tr>
+  <tr><td>#1</td><td class="num">—</td><td>1등 (기준)</td></tr>
+  <tr><td>#2 – #10</td><td class="num">0.87 – 2.18</td><td>유지 (9개)</td></tr>
+  <tr><td>#11 – #15</td><td class="num">2.35 – 2.90</td><td>z &lt; 3이지만 최대 10개 제한으로 제외</td></tr>
+  <tr><td>#16 – #17</td><td class="num">3.13, 3.17</td><td>탈락 (아슬아슬)</td></tr>
+  <tr><td>#18 – #25</td><td class="num">≈ 46</td><td>명백히 탈락</td></tr>
+</table></div>
+<p>가장 비슷한 경쟁자(Δx = +12.0 m, 늑판 4칸 옆)는 <b>187점이 1등에 더 잘 맞고, 187점이 경쟁자에 더 잘 맞아</b> z = 0.81로 유지됩니다. 오른쪽 그림에서 <span class="cy">파랑</span>은 1등에 더 맞는 점, <span class="cx">주황</span>은 경쟁자에 더 맞는 점, 회색은 차이 없는 점입니다.</p>
+<div class="note">
+  <p>점을 색칠하는 기준(점수 차이 0.2 초과)은 <b>영상 그림용</b>입니다. 실제 판정은 위의 z만 씁니다.</p>
+</div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s9" class="stage">
+<div class="stage-head"><span class="no">9</span><h2>출력: 가중치 붙은 가설 집합</h2></div>
+<figure>
+  <img src="../static/images/output.jpg" alt="구획 지도 위 10개 가설(원 면적이 가중치에 비례)과 오른쪽 가설 표" loading="lazy">
+  <figcaption>영상 1:32–1:40. 원의 면적이 가중치에 비례. 오른쪽 표의 "← GT"가 정답과 일치하는 가설(1위).</figcaption>
+</figure>
+<div class="table-wrap"><table>
+  <tr><th>#</th><th class="num">x [m]</th><th class="num">y [m]</th><th class="num">yaw</th><th class="num">z vs 1등</th><th class="num">가중치</th><th>해석</th></tr>
+  <tr><td>1</td><td class="num">63.61</td><td class="num">18.42</td><td class="num">0°</td><td class="num">0</td><td class="num">28.5%</td><td>정답</td></tr>
+  <tr><td>2</td><td class="num">75.61</td><td class="num">18.42</td><td class="num">0°</td><td class="num">0.87</td><td class="num">19.6%</td><td>+12 m (늑판 4칸)</td></tr>
+  <tr><td>3</td><td class="num">65.38</td><td class="num">13.59</td><td class="num">180°</td><td class="num">1.22</td><td class="num">13.6%</td><td>앞뒤 뒤집힌 대칭 위치</td></tr>
+  <tr><td>4</td><td class="num">74.39</td><td class="num">13.59</td><td class="num">180°</td><td class="num">1.59</td><td class="num">8.1%</td><td>대칭</td></tr>
+  <tr><td>5</td><td class="num">78.61</td><td class="num">18.42</td><td class="num">0°</td><td class="num">1.58</td><td class="num">8.2%</td><td>+15 m</td></tr>
+  <tr><td>6</td><td class="num">68.38</td><td class="num">13.59</td><td class="num">180°</td><td class="num">1.69</td><td class="num">6.8%</td><td>대칭</td></tr>
+  <tr><td>7</td><td class="num">81.61</td><td class="num">18.42</td><td class="num">0°</td><td class="num">1.88</td><td class="num">4.9%</td><td>+18 m</td></tr>
+  <tr><td>8</td><td class="num">59.39</td><td class="num">13.59</td><td class="num">180°</td><td class="num">1.96</td><td class="num">4.2%</td><td>대칭</td></tr>
+  <tr><td>9</td><td class="num">60.61</td><td class="num">18.42</td><td class="num">0°</td><td class="num">2.05</td><td class="num">3.5%</td><td>−3 m</td></tr>
+  <tr><td>10</td><td class="num">57.61</td><td class="num">18.42</td><td class="num">0°</td><td class="num">2.18</td><td class="num">2.7%</td><td>−6 m</td></tr>
+</table></div>
+<p>남은 가설들의 모양 자체가 이 환경의 모호함을 보여 줍니다. yaw 0°인 가설은 <b>3 m의 배수</b>만큼 x로 밀린 자리이고(늑판 반복), yaw 180°인 가설은 y = 13.59에서 배를 반대로 본 대칭 위치입니다.</p>
+<h3>로봇에 전달되는 것</h3>
+<ul>
+  <li><b>가설 전체</b>: 포즈 목록과 함께 가설마다 점수, 1등 대비 z, 가중치, 그리고 결정 여부(decisive)와 사용한 구획 번호.</li>
+  <li><b>대표 포즈 하나</b>: 1등 가설. 축별 불확실도 σ는 0.05 m와 다른 가설들의 가중 퍼짐을 합친 값이라, 가설이 퍼져 있는 축일수록 커집니다. yaw 신뢰도는 1등의 가중치입니다.</li>
+</ul>
+<p><b>decisive</b>는 가설이 정확히 1개일 때입니다.</p>
+</section>
+
+<!-- ================================================================ -->
+<section id="casea">
+<h2>Case A와 Ablation</h2>
+<h3>Case A: 가장 비슷한 경쟁자도 탈락</h3>
+<figure>
+  <img src="../static/images/caseA1.jpg" alt="Case A의 1등과 가장 가까운 경쟁자 점별 비교, 그리고 가설 1개만 남은 출력" loading="lazy">
+  <figcaption>영상 1:40–1:52. 왼쪽: 1등 vs 가장 가까운 경쟁자(Δx = −6.0 m). 오른쪽: 출력 가설 1개.</figcaption>
+</figure>
+<p>no_yaw 0번 스캔에서는 구획 안 닮은꼴 8곳이 모두 확실히 집니다. 가장 가까운 경쟁자도 1등 편 394점 대 경쟁자 편 165점, <b>z = 13.7</b>이라 탈락합니다. 25개 후보의 z가 전부 13.6 이상이어서 가설 1개(decisive)만 남고, 그것이 정답 (60.45, 17.37, 0°)입니다.</p>
+<div class="note">
+  <p><b>"닮은꼴(look-alike)"을 고른 방법</b> (영상 설명용): 정답의 yaw, y, z를 고정한 채 x만 0.1 m 간격으로 배 전체를 훑으며 점수를 매기고, 구획 안에서 최고 점수 −0.1 이내인 극대점 중 1등에서 1.5 m 넘게 떨어진 것을 고릅니다. 각각 ICP로 정밀화한 뒤 1등과 paired z를 계산하고, 영상은 그중 z가 가장 작은 것을 보여 줍니다.</p>
+</div>
+
+<h3>Ablation: 구획 사전정보 없이</h3>
+<figure>
+  <img src="../static/images/noprior.jpg" alt="구획 사전정보 없이 배 전체에서 찾은 4개 가설이 서로 다른 구획에 흩어진 모습" loading="lazy">
+  <figcaption>영상 1:52–1:59. 같은 스캔을 배 전체에서 찾은 결과(주황). 정답(검은 원)은 가설에 없습니다.</figcaption>
+</figure>
+<p>사전정보가 없으면 yaw당 x 봉우리를 배 전체에서 상위 5개만 쓰고, 다른 구획의 닮은꼴이 경쟁합니다. 결과는 x = 168.4, 83.6, 174.4, 11.6 m의 가설 4개이고 <b>정답은 그중에 없습니다</b>. 구획마다 비슷한 구조가 있어 후보 봉우리가 엉뚱한 구획에 다 쓰이기 때문입니다. 데이터셋 전체에서도 사전정보가 없으면 정답 포함률이 5/31(no_yaw), 6/31(yes_yaw)로 떨어집니다.</p>
+</section>
+
+<!-- ================================================================ -->
+<section id="results">
+<h2>정량 결과</h2>
+<figure>
+  <img src="../static/images/results.jpg" alt="영상 마지막 정량 결과 표" loading="lazy">
+  <figcaption>영상 1:59–2:09. 마지막 슬라이드.</figcaption>
+</figure>
+<div class="table-wrap"><table>
+  <tr><th>데이터셋</th><th class="num">스캔</th><th class="num">정답 포함</th><th class="num">정답 = 1위</th><th class="num">decisive</th><th class="num">decisive 중 정답</th><th class="num">평균 가설 수</th><th class="num">스캔당 시간</th></tr>
+  <tr><td>no_yaw (yaw = 0°)</td><td class="num">31</td><td class="num">27/31</td><td class="num">23/31</td><td class="num">14/31</td><td class="num">14/14</td><td class="num">5.2</td><td class="num">0.86 s</td></tr>
+  <tr><td>yes_yaw (yaw −173°…+123°)</td><td class="num">31</td><td class="num">28/31</td><td class="num">27/31</td><td class="num">23/31</td><td class="num">23/23</td><td class="num">2.5</td><td class="num">0.80 s</td></tr>
+</table></div>
+<ul>
+  <li><b>정답 포함</b>: 각 축 0.5 m 이내, yaw 5° 이내인 가설이 집합에 있음. <b>decisive</b>: 가설이 정확히 1개.</li>
+  <li>decisive라고 답한 경우는 <b>전부 맞았습니다</b>(14/14, 23/23). 모르면 모른다고 하고, 하나라고 할 때는 틀리지 않는다는 것이 이 방법의 핵심 성질입니다.</li>
+  <li>구획 사전정보는 스캔마다 정답이 속한 구획을 줍니다. 두 데이터셋 모두 c = 2 한 구획 안, 센서 높이 z = 0.5–1.2 m, 수평 장착입니다.</li>
+  <li>남은 실패(no_yaw 4/31, yes_yaw 3/31)는 후보 수 한도 안에 들지 못한 3 m 늑판 칸 닮은꼴입니다.</li>
+</ul>
+</section>
+
+<!-- ================================================================ -->
+<section id="video">
+<h2>영상 구성</h2>
+<p>영상의 모든 중간 결과는 위 방법을 실제로 실행했을 때 나온 값이고, 손으로 만든 그림은 없습니다. 제작은 세 단계였습니다.</p>
+<ol>
+  <li><b>실행 기록</b>: 두 스캔(no_yaw 0번, 2번)에 대해 위치추정을 돌리면서 단계별 중간값(yaw별 분류 점, 평면, 후보, 시그니처, x 봉우리, 선별 결과, ICP 경로, paired z, 유지 여부)을 모두 기록했습니다. 기록을 켠 실행과 끈 실행의 결과가 같은지도 확인했습니다. 구획 사전정보 없이 한 번 더 돌려 Ablation 장면을 만들었습니다.</li>
+  <li><b>프레임 그리기</b>: 기록을 읽어 1920 × 1080 그림을 프레임마다 그렸습니다. 왼쪽 사이드바에 9단계와 현재 단계가 강조됩니다. 5단계의 NCC 곡선만 그림용으로 다시 계산했고, 그 최고점이 기록된 x 봉우리와 0.01 m 안에서 일치하는지 확인했습니다.</li>
+  <li><b>인코딩</b>: 24 fps H.264 동영상으로 묶었습니다. 총 3,089프레임, 약 2분 9초.</li>
+</ol>
+<p>색은 색각이상에도 구별되는 세 색(<span class="cy">파랑</span>, <span class="cx">주황</span>, <span class="cz">청록</span>)을 Y, X, Z 축에 고정해서 썼고, 지도 배경은 0.25 m 격자에 쌓인 점 수를 로그 스케일 회색으로 그렸습니다.</p>
+
+<h3>타임라인</h3>
+<div class="table-wrap"><table>
+  <tr><th>장면</th><th class="num">시작</th><th class="num">길이</th><th>움직임</th></tr>
+  <tr><td>타이틀</td><td class="num">0:00</td><td class="num">5 s</td><td>정지</td></tr>
+  <tr><td>문제</td><td class="num">0:05</td><td class="num">9 s</td><td>정지</td></tr>
+  <tr><td>1 입력</td><td class="num">0:14</td><td class="num">2 + 5 s</td><td>스캔이 각도순으로 그려짐</td></tr>
+  <tr><td>2 Yaw</td><td class="num">0:21</td><td class="num">3 + 6 s</td><td>가설선이 하나씩 등장</td></tr>
+  <tr><td>3 축 분류</td><td class="num">0:30</td><td class="num">8 s</td><td>정지</td></tr>
+  <tr><td>4 단면 투표</td><td class="num">0:38</td><td class="num">2.5 + 6 s</td><td>후보 ▼가 순위순으로 등장</td></tr>
+  <tr><td>5 길이방향</td><td class="num">0:47</td><td class="num">5 + 6 s</td><td>스캔 프로필이 구획 안을 미끄러짐</td></tr>
+  <tr><td>6 선별</td><td class="num">0:58</td><td class="num">6 + 6 s</td><td>전체 → 상위 150</td></tr>
+  <tr><td>7 ICP</td><td class="num">1:10</td><td class="num">4 + 5 s</td><td>반복마다 포즈 이동</td></tr>
+  <tr><td>8 Paired-z</td><td class="num">1:19</td><td class="num">5 + 8 s</td><td>막대 → 경쟁자 비교 추가</td></tr>
+  <tr><td>9 출력</td><td class="num">1:32</td><td class="num">8 s</td><td>정지</td></tr>
+  <tr><td>Case A</td><td class="num">1:40</td><td class="num">6 + 6 s</td><td>비교 → 출력 추가</td></tr>
+  <tr><td>Ablation</td><td class="num">1:52</td><td class="num">7 s</td><td>정지</td></tr>
+  <tr><td>정량 결과</td><td class="num">1:59</td><td class="num">10 s</td><td>정지</td></tr>
+</table></div>
+</section>
+
+<!-- ================================================================ -->
+<section id="params">
+<h2>설정값 총정리</h2>
+<div class="table-wrap"><table>
+  <tr><th>단계</th><th>항목</th><th class="num">값</th></tr>
+  <tr><td>입력</td><td>스캔 복셀 크기</td><td class="num">0.1 m</td></tr>
+  <tr><td>2, 3</td><td>법선 추정 반경</td><td class="num">0.3 m</td></tr>
+  <tr><td>2</td><td>벽 판정 (|n_z| 상한)</td><td class="num">0.2</td></tr>
+  <tr><td>2</td><td>최소 벽 점 수</td><td class="num">50</td></tr>
+  <tr><td>3</td><td>축 정렬 판정 (법선 성분 하한)</td><td class="num">0.85</td></tr>
+  <tr><td>4</td><td>평면 히스토그램 칸</td><td class="num">0.1 m</td></tr>
+  <tr><td>4</td><td>평면 최소 점 수 (스캔 / 지도)</td><td class="num">30 / 200</td></tr>
+  <tr><td>4</td><td>축별 y, z 후보 수</td><td class="num">6</td></tr>
+  <tr><td>4</td><td>후보 간 최소 간격</td><td class="num">0.5 m</td></tr>
+  <tr><td>5</td><td>시그니처 칸</td><td class="num">0.1 m</td></tr>
+  <tr><td>5</td><td>x 봉우리 수 (구획 있음 / 없음)</td><td class="num">최대 40 / 5</td></tr>
+  <tr><td>5</td><td>봉우리 간 최소 간격</td><td class="num">1 m</td></tr>
+  <tr><td>6</td><td>점수 거리 τ</td><td class="num">0.25 m</td></tr>
+  <tr><td>6</td><td>선별 점 수 / 재점수 점 수</td><td class="num">100 / 2,000</td></tr>
+  <tr><td>6</td><td>재점수 대상 수</td><td class="num">150</td></tr>
+  <tr><td>6</td><td>"다른 포즈" 기준</td><td class="num">1.0 m 또는 9.7°</td></tr>
+  <tr><td>7</td><td>ICP 대상 수 / 점 수 / 반복</td><td class="num">25 / 1,000 / 10</td></tr>
+  <tr><td>7</td><td>대응 허용 거리</td><td class="num">0.8 → 0.25 m</td></tr>
+  <tr><td>7</td><td>최소 대응 수</td><td class="num">50</td></tr>
+  <tr><td>7</td><td>지도 법선 이웃 수</td><td class="num">12</td></tr>
+  <tr><td>8</td><td>탈락 기준</td><td class="num">z ≥ 3</td></tr>
+  <tr><td>8</td><td>최대 가설 수</td><td class="num">10</td></tr>
+  <tr><td>9</td><td>축별 σ 하한</td><td class="num">0.05 m</td></tr>
+  <tr><td>지도</td><td>격벽 판정 (최대값 대비) / 병합 거리</td><td class="num">30% / 1.0 m</td></tr>
+  <tr><td>지도</td><td>지도 점군 복셀</td><td class="num">0.2 m</td></tr>
+</table></div>
+</section>
+
+<!-- ================================================================ -->
+<section id="gloss">
+<h2>용어 정리</h2>
+<dl class="gloss">
+  <dt>맨해튼 가정</dt><dd>주요 면들이 서로 직교하는 세 방향 중 하나를 향한다는 가정. 선박 중앙부(parallel body)에 해당하고, 곡면인 선수·선미에는 맞지 않습니다.</dd>
+  <dt>기준 프레임 (canonical)</dt><dd>지도의 벽이 좌표축과 정확히 나란해지도록 돌린 좌표계. 지도와 스캔 모두 같은 방법으로 맞추므로 일관됩니다.</dd>
+  <dt>X 향 / Y 향 / Z 향</dt><dd>법선이 해당 축을 향하는 점. X 향 = 늑판·격벽, Y 향 = 종늑골·거더, Z 향 = 바닥판·내저판.</dd>
+  <dt>시그니처 (프로필)</dt><dd>X 향 점의 x 좌표 히스토그램. 배 길이 방향의 바코드.</dd>
+  <dt>NCC</dt><dd>정규화 상호상관. 평균을 빼고 크기로 나눈 상관이라 패턴 모양만 비교합니다.</dd>
+  <dt>구획 (compartment)</dt><dd>격벽 사이 구간. 이 지도에는 c = 0…6의 7개가 있고 간격은 약 27.1 m.</dd>
+  <dt>점 점수</dt><dd>스캔 점 하나가 지도에 얼마나 붙어 있는지, max(0, 1 − d²/τ²).</dd>
+  <dt>paired z</dt><dd>점별 점수 차이의 평균을 표준오차로 나눈 값. 1등이 경쟁자를 얼마나 일관되게 이기는지.</dd>
+  <dt>decisive</dt><dd>가설이 정확히 하나 남은 경우.</dd>
+  <dt>닮은꼴 (look-alike)</dt><dd>정답의 y, z, yaw를 그대로 두고 x만 옮겼을 때 거의 똑같이 맞는 위치.</dd>
+</dl>
+
+<h3>알려진 한계</h3>
+<ul>
+  <li>곡면 선체 구간(선수·선미)은 맨해튼 가정이 깨져서 다루지 않습니다.</li>
+  <li>롤·피치는 추정하지 않고 0으로 가정합니다.</li>
+  <li>비대칭 특징이 하나도 안 보이는 완전 주기 구간은 스스로 풀 수 없고, 낮은 확신으로 보고합니다. 랜드마크나 피두셜 융합이 다음 단계입니다.</li>
+</ul>
+</section>
+
+<footer>
+  그림은 모두 supplementary 영상의 실제 프레임입니다.
+</footer>
+</main>
+</div>

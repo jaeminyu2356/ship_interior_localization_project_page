@@ -1,0 +1,29 @@
+{
+  "rows": [
+    {
+      "name": "no_yaw  (yaw = 0°)",
+      "scans": 31,
+      "in_set": 27,
+      "best": 23,
+      "decisive": 14,
+      "decisive_correct": 14,
+      "mean_hypotheses": 5.2,
+      "ms": 861
+    },
+    {
+      "name": "yes_yaw (yaw −173°…+123°)",
+      "scans": 31,
+      "in_set": 28,
+      "best": 27,
+      "decisive": 23,
+      "decisive_correct": 23,
+      "mean_hypotheses": 2.5,
+      "ms": 800
+    }
+  ],
+  "notes": [
+    "Both datasets lie in one compartment (c = 2); sensor z = 0.5–1.2 m (map frame); level mount.",
+    "Remaining misses are 3 m frame-bay look-alikes not reached by the candidate budget (no_yaw 4/31, yes_yaw 3/31)."
+  ],
+  "no_prior_text": "Without the compartment prior, truth in set: 5/31 (no_yaw), 6/31 (yes_yaw)."
+}
