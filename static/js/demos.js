@@ -829,6 +829,63 @@
     return { update: upd, init: upd };
   });
 
+
+  // ======================================== 0 · Manhattan normal sphere ===
+  demos.push(function sphere(root) {
+    let az = -0.75, elv = 0.42, auto = true, visible = false;
+    const P = panel(root, 0.86, draw, 240, 440);
+    legend(root, [[COL.x, "X 향"], [COL.y, "Y 향"], [COL.z, "Z 향"], [COL.drop, "어느 축과도 안 맞음"]]);
+    function proj(x, y, z) { // turntable view: yaw by az, then tilt by elv
+      const xr = Math.cos(az) * x - Math.sin(az) * y, yr = Math.sin(az) * x + Math.cos(az) * y;
+      return [xr, z * Math.cos(elv) - yr * Math.sin(elv), yr * Math.cos(elv) + z * Math.sin(elv)];
+    }
+    function draw(ctx, w, h) {
+      const c = C(), R = Math.min(w, h) * 0.4, cx = w / 2, cy = h / 2;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.fillStyle = "#f6f8fa"; ctx.fill();
+      ctx.strokeStyle = COL.rule; ctx.lineWidth = 1; ctx.stroke();
+      const axes = [[1, 0, 0, COL.x, "x"], [0, 1, 0, COL.y, "y"], [0, 0, 1, COL.z, "z"]];
+      const front = [], back = [];
+      c.normals.forEach((n) => {
+        const a = [Math.abs(n[0]), Math.abs(n[1]), Math.abs(n[2])], m = Math.max(...a);
+        const col = m < 0.85 ? COL.drop : m === a[0] ? COL.x : m === a[1] ? COL.y : COL.z;
+        for (const sg of [1, -1]) { // normals are unoriented: plot both n and −n
+          const q = proj(sg * n[0], sg * n[1], sg * n[2]);
+          (q[2] >= 0 ? front : back).push([q[0], q[1], col]);
+        }
+      });
+      const put = (list, alpha, r) => { ctx.globalAlpha = alpha; for (const [x, y, col] of list) { ctx.fillStyle = col; ctx.fillRect(cx + x * R - r / 2, cy - y * R - r / 2, r, r); } ctx.globalAlpha = 1; };
+      put(back, 0.12, 2);
+      for (const [x, y, z, col, lab] of axes) {
+        for (const sg of [1, -1]) {
+          const q = proj(sg * x, sg * y, sg * z);
+          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + q[0] * R * 1.12, cy - q[1] * R * 1.12);
+          ctx.strokeStyle = col; ctx.globalAlpha = q[2] >= 0 ? 0.9 : 0.3; ctx.lineWidth = 1.3; ctx.setLineDash(sg > 0 ? [] : [3, 3]); ctx.stroke();
+          ctx.setLineDash([]); ctx.globalAlpha = 1;
+          if (sg > 0) text(ctx, lab, cx + q[0] * R * 1.2, cy - q[1] * R * 1.2 + 4, { size: 13, color: col, align: "center", weight: "600" });
+        }
+      }
+      put(front, 0.35, 2.4);
+      text(ctx, "드래그해서 돌려 보기", 8, h - 8, { size: 11, color: COL.muted });
+    }
+    let down = false, lx = 0, ly = 0;
+    P.cv.style.cursor = "grab";
+    P.cv.addEventListener("pointerdown", (e) => { down = true; auto = false; lx = e.clientX; ly = e.clientY; P.cv.setPointerCapture(e.pointerId); });
+    P.cv.addEventListener("pointermove", (e) => {
+      if (!down) return;
+      az += (e.clientX - lx) * 0.01; elv = clamp(elv + (e.clientY - ly) * 0.01, -1.4, 1.4);
+      lx = e.clientX; ly = e.clientY; P.redraw();
+    });
+    P.cv.addEventListener("pointerup", () => (down = false));
+    new IntersectionObserver((es) => (visible = es[0].isIntersecting)).observe(root);
+    let last = 0;
+    const spin = (t) => {
+      if (auto && visible && last) { az += ((t - last) / 1000) * 0.25; P.redraw(); }
+      last = t; requestAnimationFrame(spin);
+    };
+    requestAnimationFrame(spin);
+    return { update() { P.redraw(); } };
+  });
+
   // ------------------------------------------------------------- wiring ---
   const instances = [];
   function setPsi(k) { S.psi = k; for (const d of instances) if (d.psi) d.psi(); }
@@ -862,7 +919,7 @@
     try { await Promise.all([document.fonts.load('12px "Noto Sans KR"'), document.fonts.load('600 12px "Noto Sans KR"')]); } catch (e) { /* fall back to system fonts */ }
     $("#loading").remove();
     S.psi = C().true_stage;
-    const ids = ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9"];
+    const ids = ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d0"];
     demos.forEach((make, i) => {
       const inst = make($("#" + ids[i]));
       instances.push(inst);

@@ -119,3 +119,8 @@ table.res th { color: var(--muted); font-weight: 500; font-size: 13px; }
 
 .loading { color: var(--muted); font-size: 14px; padding: 30px 0; text-align: center; }
 footer { padding: 40px 0 60px; color: var(--muted); font-size: 13.5px; border-top: 1px solid var(--rule); }
+
+/* Manhattan-world intro */
+.mw { align-items: start; margin-top: 8px; }
+.mw figure { margin: 0; }
+.mw svg text { font-family: var(--f-body); }
