@@ -19,6 +19,9 @@ from scipy.spatial import cKDTree
 NORMAL_RADIUS = 0.3  # same as the localizer's normal estimation
 MAP_VIEW = (50.0, 86.0, -4.0, 36.0)  # x0, x1, y0, y1 around compartment c = 2
 MAP_GRID = 0.15
+# Height band around the sensor drawn in the top views: walls only, without the bottom
+# plating ~0.45 m below the sensor and the inner bottom ~1.5 m above it.
+BAND = (-0.25, 1.0)
 
 
 def load_pcd_xyz(path):
@@ -122,12 +125,13 @@ def build_map(repo, trace):
     x0, x1, y0, y1 = MAP_VIEW
     z = trace["truth"]["z"]
     sel = (pts[:, 0] > x0) & (pts[:, 0] < x1) & (pts[:, 1] > y0) & (pts[:, 1] < y1) & \
-          (pts[:, 2] > z - 0.6) & (pts[:, 2] < z + 1.0)
+          (pts[:, 2] > z + BAND[0]) & (pts[:, 2] < z + BAND[1])
     cells = np.unique(np.floor(pts[sel, :2] / MAP_GRID).astype(int), axis=0)
     xy = (cells + 0.5) * MAP_GRID
     return {
         "view": list(MAP_VIEW),
         "grid": MAP_GRID,
+        "band": list(BAND),
         "xy": np.round(xy.ravel(), 2).tolist(),
         "y_planes": r(trace["map_planes"]["y"]),
         "z_planes": r(trace["map_planes"]["z"]),

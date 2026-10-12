@@ -12,7 +12,7 @@
   --accent: #2a78d6;
   --f-body: "IBM Plex Sans", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-head: "Source Serif 4", "Noto Serif KR", Georgia, serif;
-  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --f-mono: "IBM Plex Mono", "Noto Sans KR", ui-monospace, monospace;
 }
 
 * { box-sizing: border-box; }
