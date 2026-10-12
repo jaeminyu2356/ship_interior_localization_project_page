@@ -112,7 +112,7 @@
     return lg;
   }
   function psiLabels() {
-    return C().stages.map((s, k) => `ψ${"₀₁₂₃"[k]} ${fmt(s.yaw * DEG, 1)}°`);
+    return C().stages.map((s) => `yaw ${fmt(s.yaw * DEG, 1)}°`);
   }
 
   function rotXY(x, y, a) { const c = Math.cos(a), s = Math.sin(a); return [c * x - s * y, s * x + c * y]; }
@@ -268,11 +268,11 @@
     const sl = slider(r, "센서 방향", -180, 180, 1, 0, (v) => { alpha = v / DEG; lab.textContent = `${v}°`; P.redraw(); }, "grow");
     const lab = el("span", { class: "mono" }, "0°"); r.appendChild(lab);
     const r2 = row(root);
-    const cb = el("label", {}, `<input type="checkbox"> ψ₀ 적용 (벽을 좌표축에 맞춰 회전)`);
+    const cb = el("label", {}, `<input type="checkbox"> 첫 번째 yaw 가설 적용 (벽을 좌표축에 맞춰 회전)`);
     r2.appendChild(cb);
     cb.querySelector("input").addEventListener("change", (e) => { apply = e.target.checked; P.redraw(); });
     const P = panel(root, 0.42, draw, 220);
-    legend(root, [[COL.ink2, "벽 점 (|n_z| < 0.2)"], [COL.x, "주된 벽 방향", "line"], [COL.ink, "4θ 평균 벡터", "line"]]);
+    legend(root, [[COL.ink2, "벽 점 (거의 수직인 면)"], [COL.x, "주된 벽 방향", "line"], [COL.ink, "평균 방향 화살표", "line"]]);
     const out = readout(root);
     let walls = null;
     function draw(ctx, w, h) {
@@ -292,7 +292,7 @@
       ctx.fillStyle = COL.ink2;
       for (const p of walls) { const [x, y] = rotXY(p[0], p[1], rot); if (Math.abs(x) < 12 && Math.abs(y) < 12) ctx.fillRect(T.X(x) - 0.8, T.Y(y) - 0.8, 1.6, 1.6); }
       robot(ctx, T, [0, 0, 0, rot], COL.ink, 0.8);
-      text(ctx, apply ? "ψ₀만큼 회전: 벽이 격자와 나란함" : "스캔 (벽만), 위에서 본 모습", 4, 12, { size: 12, color: COL.ink });
+      text(ctx, apply ? "첫 번째 가설만큼 회전: 벽이 격자와 나란함" : "스캔 (벽만), 위에서 본 모습", 4, 12, { size: 12, color: COL.ink });
       // polar histograms
       const polar = (cx, cy, R, angles, color, title, spokes, arrow) => {
         const nb = 90, hist = new Array(nb).fill(0);
@@ -321,10 +321,10 @@
       };
       const R = Math.min(third / 2 - 22, (h - 40) / 2);
       const dom = [0, 1, 2, 3].map((k) => phi + (k * Math.PI) / 2);
-      polar(third * 1.5, 18 + (h - 18) / 2, R, th, COL.y, "θ: 봉우리 4개", dom, null);
-      polar(third * 2.5, 18 + (h - 18) / 2, R, th.map((t) => 4 * t), "#7b5cc4", "4θ: 하나로 접힘", [], [4 * phi, strength]);
-      out.innerHTML = `φ = <b>${fmtDeg(phi, 2)}</b> · 투표 강도 <b>${strength.toFixed(2)}</b> (벽 점 ${th.length.toLocaleString()}개)<br>` +
-        `yaw 가설 ψ = ${psi.map((p) => `<b>${fmtDeg(p, 1)}</b>`).join(", ")}` +
+      polar(third * 1.5, 18 + (h - 18) / 2, R, th, COL.y, "벽 방향: 봉우리 4개", dom, null);
+      polar(third * 2.5, 18 + (h - 18) / 2, R, th.map((t) => 4 * t), "#7b5cc4", "방향 ×4: 하나로 겹침", [], [4 * phi, strength]);
+      out.innerHTML = `주된 벽 방향 <b>${fmtDeg(phi, 2)}</b> · 투표 강도 <b>${strength.toFixed(2)}</b> (벽 점 ${th.length.toLocaleString()}개)<br>` +
+        `yaw 가설 ${psi.map((p) => `<b>${fmtDeg(p, 1)}</b>`).join(", ")}` +
         (alpha === 0 ? ` · 실제 실행 기록: ${C().stages.map((s) => fmtDeg(s.yaw, 1)).join(", ")}` : "");
     }
     return { update() { walls = null; P.redraw(); } };
@@ -337,7 +337,7 @@
     const r = row(root);
     const sg = seg(r, psiLabels(), S.psi, (k) => setPsi(k));
     const r2 = row(root);
-    const sl = slider(r2, "정렬 기준 |n·축| ≥", 0.5, 0.99, 0.01, thr, (v) => { thr = v; tl.textContent = v.toFixed(2); P.redraw(); }, "grow");
+    const sl = slider(r2, "축 정렬 기준", 0.5, 0.99, 0.01, thr, (v) => { thr = v; tl.textContent = v.toFixed(2); P.redraw(); }, "grow");
     const tl = el("span", { class: "mono" }, thr.toFixed(2)); r2.appendChild(tl);
     const P = panel(root, 0.62, draw);
     const lg = el("div", { class: "legend" });
@@ -391,7 +391,7 @@
     const sub1 = el("div", { class: "sub-label" }, "평면 위치: 지도 평면(회색)과 현재 이동량만큼 옮긴 스캔 평면(색, 굵기 = 점 수)");
     root.appendChild(sub1);
     const P1 = panel(root, 0.16, drawStrip, 92, 130);
-    const sub2 = el("div", { class: "sub-label" }, "모든 (스캔 평면, 지도 평면) 짝의 투표 m − o, 점 수 가중, 0.1 m 칸");
+    const sub2 = el("div", { class: "sub-label" }, "모든 (스캔 평면, 지도 평면) 짝이 낸 이동량 투표 (점 수만큼 가중, 0.1 m 칸)");
     root.appendChild(sub2);
     const P2 = panel(root, 0.36, drawHist, 170, 300);
     legend(root, [[COL.ink, "남긴 후보 (순위)", ""], [COL.ink, "정답", "line"], ["#e0a526", "현재 이동량", "line"]]);
@@ -459,7 +459,7 @@
       const rank = opts.findIndex((v) => Math.abs(v - tv) < 0.3);
       out.innerHTML = `이동량 ${axis} = <b>${fmt(t, 2)} m</b> · 득표 (±0.15 m) <b>${supportAt(t)}</b> · 지도 평면과 겹친 스캔 평면 <b>${P1.matched} / ${local().length}</b><br>` +
         `스캔 평면 ${local().length}개 × 지도 평면 ${mapPlanes().length}개 = 투표 ${local().length * mapPlanes().length}개 · 정답 ${axis} = ${fmt(tv, 2)} m → ` +
-        (rank >= 0 ? `후보 <b>${rank + 1}위</b> (차이 ${Math.abs(opts[rank] - tv).toFixed(2)} m, 7단계 ICP가 메움)` : "이 ψ에서는 <b>남긴 후보에 없음</b>");
+        (rank >= 0 ? `후보 <b>${rank + 1}위</b> (차이 ${Math.abs(opts[rank] - tv).toFixed(2)} m, 7단계 ICP가 메움)` : "이 yaw 가설에서는 <b>남긴 후보에 없음</b>");
     }
     for (const P of [P1, P2]) draggable(P.cv, (px) => { t = clamp(sx(P.w).inv(px), RANGE[axis][0], RANGE[axis][1]); P1.redraw(); P2.redraw(); info(); });
     return { update() { sg.relabel(psiLabels()); sg.set(S.psi); t = null; redraw(); }, psi() { sg.set(S.psi); t = null; redraw(); }, init: redraw };
@@ -474,7 +474,7 @@
     const r2 = row(root);
     const btn = el("button", { class: "pill", type: "button" }, "▶ 재생"); r2.appendChild(btn);
     r2.appendChild(el("span", { class: "sub-label", style: "margin:0" }, "그래프를 드래그해 스캔 바코드를 밀어 보세요"));
-    root.appendChild(el("div", { class: "sub-label" }, "선박 바코드 (지도 x 시그니처, √ 눈금)와 현재 x에 놓인 스캔 바코드(회색)"));
+    root.appendChild(el("div", { class: "sub-label" }, "선박 바코드 (지도 x 시그니처, 격벽 봉우리는 줄여서 표시)와 현재 x에 놓인 스캔 바코드(회색)"));
     const P1 = panel(root, 0.26, drawSig, 130, 220);
     root.appendChild(el("div", { class: "sub-label" }, "후보 센서 x에 따른 정규화 상호상관(NCC)"));
     const P2 = panel(root, 0.32, drawCurve, 160, 260);
@@ -616,7 +616,7 @@
       ctx.strokeStyle = COL.muted; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2; ctx.stroke(); ctx.setLineDash([]);
       for (const d of [0, 0.1, 0.2, 0.25, 0.3, 0.4]) { vline(ctx, X(d), Y(0), Y(0) + 4, COL.muted); text(ctx, d + " m", X(d), h - 4, { size: 10.5, align: "center", color: COL.muted }); }
       text(ctx, "1", 26, Y(1) + 4, { size: 10.5, color: COL.muted }); text(ctx, "0", 26, Y(0) + 4, { size: 10.5, color: COL.muted });
-      text(ctx, "max(0, 1 − d²/τ²)", X(0.12), Y(0.55), { size: 11.5, color: COL.accent });
+      text(ctx, "부드러운 점수 (사용)", X(0.12), Y(0.55), { size: 11.5, color: COL.accent });
       text(ctx, "인라이어 판정", X(0.3), Y(0.9), { size: 11.5, color: COL.muted });
     }
     P.cv.addEventListener("pointermove", (e) => {
@@ -722,7 +722,7 @@
     const r = row(root);
     const sg = seg(r, ["", ""], 0, (i) => { rival = ["tie", "rejected"][i]; redraw(); });
     const r2 = row(root);
-    slider(r2, "점 색칠 기준 |dᵢ| >", 0.05, 0.5, 0.01, margin, (v) => { margin = v; ml.textContent = v.toFixed(2); redraw(); }, "grow");
+    slider(r2, "점 색칠 기준 (점수 차이)", 0.05, 0.5, 0.01, margin, (v) => { margin = v; ml.textContent = v.toFixed(2); redraw(); }, "grow");
     const ml = el("span", { class: "mono" }, margin.toFixed(2)); r2.appendChild(ml);
     const box = el("div", { class: "two", style: "gap:10px" }); root.appendChild(box);
     const left = el("div"), right = el("div"); box.append(left, right);
@@ -773,8 +773,8 @@
       P1.redraw(); P2.redraw();
       const st = stats(), forBest = st.d.filter((v) => v > margin).length, forRival = st.d.filter((v) => v < -margin).length;
       const keptN = c.kept.filter(Boolean).length;
-      out.innerHTML = `Δx = <b>${fmt(R().pose[0] - b[0], 1)} m</b> 경쟁 가설: 1등 지지 ${forBest}점, 경쟁 가설 지지 ${forRival}점 (|dᵢ| > ${margin.toFixed(2)})<br>` +
-        `n = ${st.n.toLocaleString()} · mean(d) = ${st.m.toFixed(4)} · sd(d) = ${st.sd.toFixed(3)} → z = <b>${st.z.toFixed(2)}</b> ` +
+      out.innerHTML = `Δx = <b>${fmt(R().pose[0] - b[0], 1)} m</b> 경쟁 가설: 1등 지지 ${forBest}점, 경쟁 가설 지지 ${forRival}점 (점수 차이 ${margin.toFixed(2)} 초과)<br>` +
+        `비교한 점 ${st.n.toLocaleString()}개 · 점수 차이 평균 ${st.m.toFixed(4)} · 흩어짐 ${st.sd.toFixed(3)} → z = <b>${st.z.toFixed(2)}</b> ` +
         `(기록값 ${R().z.toFixed(2)}) → <b>${st.z >= c.z_threshold ? "탈락" : "유지"}</b><br>` +
         `후보 ${c.paired_z.length}개 중 ${keptN}개 유지 → ${keptN === 1 ? "<b>확정 (decisive)</b>" : "모호함, 전부 보고"}`;
     }
