@@ -1,73 +1,73 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ship Interior Global Localization</title>
-<meta name="description" content="Manhattan-world multi-hypothesis global LiDAR localization inside a ship's double-bottom structure, with interactive explanations of every stage.">
+<title>선박 내부 전역 위치 추정</title>
+<meta name="description" content="선박 이중저 구조 내부에서 맨해튼 월드 가정을 이용한 다중 가설 LiDAR 전역 위치 추정. 모든 단계를 인터랙티브하게 설명합니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
 <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
 
 <header class="hero">
   <div class="wrap">
-    <h1>Multi-Hypothesis Global LiDAR Localization Inside a Ship's Double Bottom</h1>
-    <p class="sub">A single LiDAR scan, a CAD-derived map, and the Manhattan structure of the hull: the method returns every pose the scan cannot rule out, and commits to one only when it is certain.</p>
+    <h1>선박 이중저 내부에서의 다중 가설 LiDAR 전역 위치 추정</h1>
+    <p class="sub">LiDAR 스캔 한 장, CAD로 만든 지도, 그리고 선체의 맨해튼 구조. 이 방법은 스캔으로 배제할 수 없는 자세를 모두 돌려주고, 확실할 때만 하나를 확정합니다.</p>
     <div class="buttons">
-      <a class="btn" href="#how">How it works</a>
-      <a class="btn ghost" href="static/videos/pipeline_walkthrough.mp4">Pipeline video</a>
-      <a class="btn ghost" href="static/videos/dataset_scans.mp4">Dataset video</a>
-      <a class="btn ghost" href="#results">Results</a>
+      <a class="btn" href="#how">작동 원리</a>
+      <a class="btn ghost" href="static/videos/pipeline_walkthrough.mp4">파이프라인 영상</a>
+      <a class="btn ghost" href="static/videos/dataset_scans.mp4">데이터셋 영상</a>
+      <a class="btn ghost" href="#results">결과</a>
     </div>
     <div class="teaser">
       <video controls muted playsinline preload="metadata" poster="static/images/problem.jpg">
         <source src="static/videos/pipeline_walkthrough.mp4" type="video/mp4">
       </video>
-      <div class="cap">Supplementary video (2:09): every intermediate result shown is the output of the method on a real Isaac Sim scan.</div>
+      <div class="cap">보충 영상 (2:09): 영상에 나오는 모든 중간 결과는 실제 Isaac Sim 스캔에 이 방법을 적용한 출력입니다.</div>
     </div>
   </div>
 </header>
 
 <section id="problem">
   <div class="wrap narrow">
-    <h2>The problem</h2>
-    <p class="lead">Inside a ship's double bottom, a robot sees floors every 3 m, girders every 1.5 m, and bulkheads every 27 m. Almost every place looks like several others.</p>
-    <p>Global localization asks for the robot's pose (x, y, z, yaw) in the ship map from one LiDAR scan, with no initial guess. In a structure this repetitive, the best-scoring pose is often a look-alike a few frame spaces away. Picking it means being confidently wrong.</p>
-    <p>The method uses the same regularity that causes the problem. The hull is a <em>Manhattan world</em>: its plates face one of three orthogonal directions. That lets the 4-DoF search split into easy 1-D problems (yaw, then y and z, then x). Every pose the scan cannot statistically rule out is then kept, each with a weight.</p>
+    <h2>문제</h2>
+    <p class="lead">선박 이중저 안에서 로봇은 3 m마다 플로어, 1.5 m마다 거더, 27 m마다 격벽을 봅니다. 거의 모든 위치가 다른 여러 위치와 비슷해 보입니다.</p>
+    <p>전역 위치 추정은 초기 추정값 없이 LiDAR 스캔 한 장만으로 선박 지도 안에서 로봇의 자세(x, y, z, yaw)를 구하는 문제입니다. 이렇게 반복적인 구조에서는 점수가 가장 높은 자세가 몇 프레임 간격 떨어진 닮은 위치인 경우가 많습니다. 그것을 고르면 확신을 가지고 틀리게 됩니다.</p>
+    <p>이 방법은 문제를 일으키는 바로 그 규칙성을 이용합니다. 선체는 <em>맨해튼 월드</em>입니다. 모든 판재가 서로 직교하는 세 방향 중 하나를 향합니다. 덕분에 4자유도 탐색을 쉬운 1차원 문제들(yaw, 다음으로 y와 z, 마지막으로 x)로 나눌 수 있습니다. 그런 다음 스캔으로 통계적으로 배제할 수 없는 자세는 모두 가중치와 함께 남겨 둡니다.</p>
     <div class="keypoints">
-      <div><div class="num">9</div><div class="lbl">stages, from wall-normal voting to a weighted hypothesis set</div></div>
-      <div><div class="num">37 / 37</div><div class="lbl">decisive answers that were correct across both datasets</div></div>
-      <div><div class="num">0.8 s</div><div class="lbl">per scan, including the 2,772 → 25 hypothesis screening</div></div>
+      <div><div class="num">9</div><div class="lbl">단계: 벽 법선 투표부터 가중치가 붙은 가설 집합까지</div></div>
+      <div><div class="num">37 / 37</div><div class="lbl">두 데이터셋에서 확정 답변이 모두 정답</div></div>
+      <div><div class="num">0.8 s</div><div class="lbl">스캔당 소요 시간 (2,772 → 25 가설 선별 포함)</div></div>
     </div>
   </div>
 </section>
 
 <section id="how" style="padding-bottom:0">
   <div class="wrap narrow">
-    <h2>How it works, stage by stage</h2>
-    <p>Each stage below runs on the recorded intermediate results of the actual pipeline. Use the controls to see what each step does. The bar at the top switches between two real scans:</p>
+    <h2>단계별 작동 원리</h2>
+    <p>아래 각 단계는 실제 파이프라인에서 기록한 중간 결과로 동작합니다. 컨트롤을 조작해 각 단계가 무엇을 하는지 확인해 보세요. 상단 막대에서 실제 스캔 두 개를 전환할 수 있습니다.</p>
     <ul>
-      <li><b>Case A</b> (no_yaw scan 0): the scan resolves itself. One hypothesis remains.</li>
-      <li><b>Case B</b> (no_yaw scan 2): the scan is ambiguous. Ten hypotheses remain, and the truth is ranked first.</li>
+      <li><b>Case A</b> (no_yaw 스캔 0): 스캔만으로 답이 정해집니다. 가설이 하나만 남습니다.</li>
+      <li><b>Case B</b> (no_yaw 스캔 2): 스캔이 모호합니다. 가설 10개가 남고, 정답이 1위입니다.</li>
     </ul>
   </div>
 </section>
 
-<nav class="pipe-bar" aria-label="Pipeline stages">
+<nav class="pipe-bar" aria-label="파이프라인 단계">
   <div class="wrap">
     <div class="steps" id="steps">
-      <a href="#s1"><b>1</b>Input</a>
+      <a href="#s1"><b>1</b>입력</a>
       <a href="#s2"><b>2</b>Yaw</a>
-      <a href="#s3"><b>3</b>Axes</a>
+      <a href="#s3"><b>3</b>축 분류</a>
       <a href="#s4"><b>4</b>y, z</a>
       <a href="#s5"><b>5</b>x</a>
-      <a href="#s6"><b>6</b>Screen</a>
+      <a href="#s6"><b>6</b>선별</a>
       <a href="#s7"><b>7</b>ICP</a>
       <a href="#s8"><b>8</b>Paired z</a>
-      <a href="#s9"><b>9</b>Output</a>
+      <a href="#s9"><b>9</b>출력</a>
     </div>
     <div class="case-switch" id="case-switch">
       <button data-case="a">Case A</button>
@@ -77,15 +77,15 @@
 </nav>
 
 <div class="wrap" id="stages">
-  <div class="loading" id="loading">Loading the recorded pipeline data…</div>
+  <div class="loading" id="loading">기록된 파이프라인 데이터를 불러오는 중…</div>
 
   <!-- 1 ------------------------------------------------------------ -->
   <div class="stage" id="s1">
     <div class="text">
       <span class="no">1</span>
-      <h3>Input: one LiDAR scan</h3>
-      <p>A single scan in the sensor frame, from a simulated 3D LiDAR (Isaac Sim RTX). The pose is unknown. Roll and pitch are assumed zero (level mount), so four unknowns remain: x, y, z, yaw.</p>
-      <p>The raw scan (~300k points) is reduced with a 0.1 m voxel filter to about 6k points. Colour is height.</p>
+      <h3>입력: LiDAR 스캔 한 장</h3>
+      <p>시뮬레이션된 3D LiDAR(Isaac Sim RTX)로 얻은 센서 좌표계의 스캔 한 장입니다. 자세는 알 수 없습니다. 센서가 수평으로 장착되어 roll과 pitch가 0이라고 가정하므로, 미지수는 x, y, z, yaw 네 개입니다.</p>
+      <p>원시 스캔(약 30만 점)을 0.1 m 복셀 필터로 약 6천 점까지 줄입니다. 색은 높이를 나타냅니다.</p>
       <div class="eq">p_map = R_z(yaw) · p_sensor + (x, y, z)</div>
     </div>
     <div class="demo" id="d1"></div>
@@ -95,13 +95,13 @@
   <div class="stage" id="s2">
     <div class="text">
       <span class="no">2</span>
-      <h3>Yaw hypotheses from wall normals</h3>
-      <p>In a Manhattan world, wall normals point in four directions 90° apart. A plain average of these headings cancels out. Multiplying each angle by 4 folds all four directions onto one, so the circular mean can be taken.</p>
-      <div class="eq">θᵢ = atan2(n_y, n_x)   (walls: |n_z| &lt; 0.2)
+      <h3>벽 법선으로 yaw 가설 만들기</h3>
+      <p>맨해튼 월드에서 벽 법선은 90° 간격의 네 방향을 가리킵니다. 이 방향들을 그냥 평균하면 서로 상쇄됩니다. 각 각도에 4를 곱하면 네 방향이 하나로 겹치므로 원형 평균을 구할 수 있습니다.</p>
+      <div class="eq">θᵢ = atan2(n_y, n_x)   (벽: |n_z| &lt; 0.2)
 φ = atan2(Σ sin 4θᵢ, Σ cos 4θᵢ) / 4
 ψ_k = −φ + k·90°,  k = 0…3</div>
-      <p>The vote cannot tell the four 90° turns apart, so all four ψ go to the next stage.</p>
-      <div class="try">Try it: rotate the sensor. The θ histogram turns, but the 4θ arrow always recovers the walls' direction. Tick “apply ψ₀” to rotate the walls back onto the axes.</div>
+      <p>이 투표로는 90° 단위의 네 회전을 구별할 수 없으므로, 네 개의 ψ를 모두 다음 단계로 넘깁니다.</p>
+      <div class="try">해 보기: 센서를 회전시켜 보세요. θ 히스토그램은 돌아가지만 4θ 화살표는 항상 벽의 방향을 찾아냅니다. “apply ψ₀”를 체크하면 벽이 축에 맞게 다시 회전합니다.</div>
     </div>
     <div class="demo" id="d2"></div>
   </div>
@@ -110,14 +110,14 @@
   <div class="stage" id="s3">
     <div class="text">
       <span class="no">3</span>
-      <h3>Axis classification</h3>
-      <p>After rotating by a yaw hypothesis, each point is labelled by the axis its surface normal points along. Points whose normal is not clearly aligned with any axis are dropped: edges, corners, and the curved bilge.</p>
+      <h3>축 분류</h3>
+      <p>yaw 가설만큼 회전한 뒤, 각 점에 표면 법선이 향하는 축으로 라벨을 붙입니다. 어느 축과도 뚜렷하게 정렬되지 않은 점, 즉 모서리, 코너, 곡면인 빌지는 버립니다.</p>
       <ul>
-        <li><span class="cx">X-facing</span>: floors and bulkheads, which cross the ship. These feed the x signature (stage 5).</li>
-        <li><span class="cy">Y-facing</span>: girders and longitudinals. These feed the y estimate.</li>
-        <li><span class="cz">Z-facing</span>: bottom and inner-bottom plating. These feed the z estimate.</li>
+        <li><span class="cx">X 방향</span>: 선박을 가로지르는 플로어와 격벽입니다. x 시그니처(5단계)에 쓰입니다.</li>
+        <li><span class="cy">Y 방향</span>: 거더와 종통재입니다. y 추정에 쓰입니다.</li>
+        <li><span class="cz">Z 방향</span>: 선저판과 내저판입니다. z 추정에 쓰입니다.</li>
       </ul>
-      <div class="try">Try it: switch to ψ₁. X and Y swap, which is why every hypothesis is carried forward. Move the threshold to see what “clearly aligned” means.</div>
+      <div class="try">해 보기: ψ₁로 바꿔 보세요. X와 Y가 뒤바뀝니다. 그래서 모든 가설을 다음 단계로 가져갑니다. 임계값을 움직여 “뚜렷하게 정렬됨”이 무슨 뜻인지 확인해 보세요.</div>
     </div>
     <div class="demo" id="d3"></div>
   </div>
@@ -126,10 +126,10 @@
   <div class="stage" id="s4">
     <div class="text">
       <span class="no">4</span>
-      <h3>Cross-section voting for y and z</h3>
-      <p>The scan's Y-facing points are histogrammed along y, and the peaks are its local planes. The map has its own plane list (29 Y planes, 11 Z planes). If scan plane <i>o</i> is map plane <i>m</i>, the translation is <i>m − o</i>.</p>
-      <p>The method does not know which pair is right, so every pair votes, weighted by the scan plane's point count. The true translation is where many pairs agree. The six best-supported values are kept per axis, not just the mode.</p>
-      <div class="try">Try it: drag across the plots to slide the scan's planes over the map's. At a good translation, several scan planes land on map planes at once.</div>
+      <h3>단면 투표로 y, z 구하기</h3>
+      <p>스캔의 Y 방향 점들을 y축으로 히스토그램을 만들면, 피크가 스캔 주변의 평면들입니다. 지도에도 자체 평면 목록(Y 평면 29개, Z 평면 11개)이 있습니다. 스캔 평면 <i>o</i>가 지도 평면 <i>m</i>이라면 이동량은 <i>m − o</i>입니다.</p>
+      <p>어느 쌍이 맞는지 모르므로 모든 쌍이 스캔 평면의 점 개수만큼 가중치를 두고 투표합니다. 많은 쌍이 동의하는 값이 진짜 이동량입니다. 최빈값 하나가 아니라, 축마다 지지가 가장 높은 값 6개를 남깁니다.</p>
+      <div class="try">해 보기: 그래프를 드래그해 스캔 평면을 지도 평면 위로 밀어 보세요. 이동량이 맞으면 여러 스캔 평면이 동시에 지도 평면에 겹칩니다.</div>
     </div>
     <div class="demo" id="d4"></div>
   </div>
@@ -138,11 +138,11 @@
   <div class="stage" id="s5">
     <div class="text">
       <span class="no">5</span>
-      <h3>Longitudinal correlation for x</h3>
-      <p>Along the ship, the X-facing points form a barcode: a floor every 3 m and a bulkhead every 27 m. The scan has a short barcode of its own. Sliding it along the map's barcode and computing normalized cross-correlation (NCC) at each offset gives a curve over candidate x.</p>
+      <h3>길이 방향 상관으로 x 구하기</h3>
+      <p>선박 길이 방향으로 X 방향 점들은 바코드를 이룹니다. 3 m마다 플로어, 27 m마다 격벽이 있습니다. 스캔에도 짧은 바코드가 있습니다. 이것을 지도의 바코드를 따라 밀면서 각 오프셋에서 정규화 상호상관(NCC)을 계산하면 x 후보에 대한 곡선이 나옵니다.</p>
       <div class="eq">NCC(s) = Σ (Lᵢ − L̄)(G_{s+i} − Ḡ_s) / (‖L − L̄‖ · ‖G_s − Ḡ_s‖)</div>
-      <p>Here the ambiguity becomes visible: a peak stands every 3 m, and the highest is not always the true one. So, within the compartment given as a prior, <b>every</b> peak becomes an x candidate (up to 40, at least 1 m apart).</p>
-      <div class="try">Try it: drag the scan's barcode, or press play. Then turn off the compartment prior. The top-5 peaks over the whole ship usually miss the truth.</div>
+      <p>여기서 모호성이 눈에 보입니다. 3 m마다 피크가 서 있고, 가장 높은 피크가 항상 정답은 아닙니다. 그래서 사전 정보로 주어진 구획 안에서는 <b>모든</b> 피크를 x 후보로 삼습니다(최대 40개, 서로 1 m 이상 떨어짐).</p>
+      <div class="try">해 보기: 스캔 바코드를 드래그하거나 재생을 눌러 보세요. 그다음 구획 사전 정보를 꺼 보세요. 선박 전체에서 상위 5개 피크는 대개 정답을 놓칩니다.</div>
     </div>
     <div class="demo" id="d5"></div>
   </div>
@@ -151,16 +151,16 @@
   <div class="stage" id="s6">
     <div class="text">
       <span class="no">6</span>
-      <h3>Hypothesis screening</h3>
-      <p>Every combination of yaw × x peak × y candidate × z candidate is a full pose: 2,772 in Case B. Each is scored by how well the scan sits on the map, using a smooth kernel instead of an inlier count.</p>
+      <h3>가설 선별</h3>
+      <p>yaw × x 피크 × y 후보 × z 후보의 모든 조합이 하나의 완전한 자세입니다. Case B에서는 2,772개입니다. 각 자세는 스캔이 지도에 얼마나 잘 얹히는지로 점수를 매기며, 인라이어 개수 대신 부드러운 커널을 씁니다.</p>
       <div class="eq">score = mean over points of max(0, 1 − d²/τ²),  τ = 0.25 m</div>
-      <p>The search narrows in steps:</p>
+      <p>탐색은 단계적으로 좁혀집니다.</p>
       <ul>
-        <li>All poses are scored with 100 scan points.</li>
-        <li>The top 150 are rescored with 2,000 points.</li>
-        <li>25 distinct poses (more than 1 m or 9.7° apart) go on to refinement.</li>
+        <li>모든 자세를 스캔 점 100개로 점수를 매깁니다.</li>
+        <li>상위 150개를 점 2,000개로 다시 점수를 매깁니다.</li>
+        <li>서로 다른 자세 25개(1 m 또는 9.7° 이상 차이)를 정밀화 단계로 보냅니다.</li>
       </ul>
-      <div class="try">Try it: hover over a candidate to place the scan there. Step through the three filters.</div>
+      <div class="try">해 보기: 후보 위에 마우스를 올리면 스캔이 그 위치에 놓입니다. 세 단계 필터를 차례로 넘겨 보세요.</div>
     </div>
     <div class="demo" id="d6"></div>
   </div>
@@ -169,10 +169,10 @@
   <div class="stage" id="s7">
     <div class="text">
       <span class="no">7</span>
-      <h3>4-DoF point-to-plane ICP</h3>
-      <p>The 25 survivors can be tens of centimetres off, from 0.1 m signature bins and plane-vote noise. Each is refined for 10 iterations. In each iteration, 1,000 scan points are matched to the nearest map points and their normals, and the solver finds the [Δyaw, Δx, Δy, Δz] that minimises the point-to-plane distance.</p>
-      <p>The correspondence gate shrinks linearly from 0.8 m to 0.25 m. Early iterations accept large offsets; late iterations only listen to points that truly lie on the map.</p>
-      <div class="try">Try it: scrub the iterations, or pick another candidate. Wrong candidates also converge, onto a look-alike. ICP fixes precision, not ambiguity.</div>
+      <h3>4자유도 point-to-plane ICP</h3>
+      <p>살아남은 25개는 0.1 m 시그니처 빈과 평면 투표 잡음 때문에 수십 cm 어긋나 있을 수 있습니다. 각각을 10회 반복으로 정밀화합니다. 매 반복마다 스캔 점 1,000개를 가장 가까운 지도 점과 그 법선에 대응시키고, point-to-plane 거리를 최소화하는 [Δyaw, Δx, Δy, Δz]를 구합니다.</p>
+      <p>대응 게이트는 0.8 m에서 0.25 m로 선형으로 줄어듭니다. 초반 반복은 큰 어긋남도 받아들이고, 후반 반복은 실제로 지도 위에 놓인 점만 반영합니다.</p>
+      <div class="try">해 보기: 반복 횟수를 움직이거나 다른 후보를 골라 보세요. 틀린 후보도 닮은 위치로 수렴합니다. ICP는 정밀도를 고칠 뿐, 모호성을 해결하지는 않습니다.</div>
     </div>
     <div class="demo" id="d7"></div>
   </div>
@@ -181,14 +181,14 @@
   <div class="stage" id="s8">
     <div class="text">
       <span class="no">8</span>
-      <h3>Paired-z selection</h3>
-      <p>Comparing mean scores is not enough. Most points (floor plating, long walls) fit every look-alike equally well and dilute the difference. The method compares the two poses <b>point by point</b> on the same scan points, as in a paired t-test.</p>
+      <h3>Paired-z 선택</h3>
+      <p>평균 점수 비교만으로는 부족합니다. 대부분의 점(바닥 판재, 긴 벽)은 모든 닮은 위치에 똑같이 잘 맞아서 차이를 희석시킵니다. 그래서 대응 표본 t-검정처럼 같은 스캔 점 위에서 두 자세를 <b>점 하나하나</b> 비교합니다.</p>
       <div class="eq">dᵢ = score_best(i) − score_rival(i)
 z  = mean(d) / (sd(d) / √n)
-z ≥ 3 → rival ruled out;  z &lt; 3 → kept (max 10)
+z ≥ 3 → 경쟁 가설 배제;  z &lt; 3 → 유지 (최대 10개)
 weight ∝ exp(−z²/2)</div>
-      <p>Points that fit both poses equally cancel out. Only the few points that tell the two poses apart decide.</p>
-      <div class="try">Try it: switch between rivals. Blue points prefer the best pose, orange points prefer the rival. In Case B the closest rival splits the votes 187 : 187 and survives; in Case A every rival loses clearly.</div>
+      <p>두 자세에 똑같이 맞는 점들은 상쇄됩니다. 두 자세를 구별해 주는 소수의 점들만이 결과를 정합니다.</p>
+      <div class="try">해 보기: 경쟁 가설을 바꿔 보세요. 파란 점은 최선의 자세를, 주황 점은 경쟁 가설을 지지합니다. Case B에서는 가장 가까운 경쟁 가설이 187 : 187로 표가 갈려 살아남고, Case A에서는 모든 경쟁 가설이 확실히 집니다.</div>
     </div>
     <div class="demo" id="d8"></div>
   </div>
@@ -197,10 +197,10 @@ weight ∝ exp(−z²/2)</div>
   <div class="stage" id="s9">
     <div class="text">
       <span class="no">9</span>
-      <h3>Output: a weighted hypothesis set</h3>
-      <p>The robot receives every surviving pose, each with its score, its z against the best, and a weight. The result is <b>decisive</b> only when exactly one hypothesis remains.</p>
-      <p>The shape of the set describes the ambiguity. In Case B, the yaw 0° hypotheses are shifted by multiples of the 3 m frame spacing, and the yaw 180° ones are the mirrored position on the other side of the centre girder.</p>
-      <p>Without the compartment prior, look-alikes in other compartments compete and the truth can drop out of the set entirely (strip below the map).</p>
+      <h3>출력: 가중치가 붙은 가설 집합</h3>
+      <p>로봇은 살아남은 모든 자세를 받습니다. 각 자세에는 점수, 최선의 자세 대비 z, 가중치가 붙어 있습니다. 가설이 정확히 하나만 남았을 때만 결과가 <b>확정</b>입니다.</p>
+      <p>집합의 모양이 모호성을 보여 줍니다. Case B에서 yaw 0° 가설들은 3 m 프레임 간격의 배수만큼 이동해 있고, yaw 180° 가설들은 중심 거더 반대편의 대칭 위치입니다.</p>
+      <p>구획 사전 정보가 없으면 다른 구획의 닮은 위치들이 경쟁하고, 정답이 집합에서 아예 빠질 수도 있습니다(지도 아래 띠).</p>
     </div>
     <div class="demo" id="d9"></div>
   </div>
@@ -209,19 +209,19 @@ weight ∝ exp(−z²/2)</div>
 <section id="map">
   <div class="wrap">
     <div class="narrow">
-      <h2>The prior map</h2>
-      <p>The map is built once, offline, from the CAD model. The model's surfaces are sampled (5.0 M points) and voxelized at 0.2 m (2.0 M points). The same normal estimation and axis classification as in stages 2–3 are then run over the whole cloud. The result is a 6 KB summary:</p>
+      <h2>사전 지도</h2>
+      <p>지도는 CAD 모델로부터 오프라인에서 한 번 만듭니다. 모델 표면을 샘플링(500만 점)하고 0.2 m로 복셀화(200만 점)합니다. 그다음 2–3단계와 같은 법선 추정과 축 분류를 전체 점군에 적용합니다. 결과는 6 KB짜리 요약입니다.</p>
       <ul>
-        <li><b>Plane lists.</b> Peaks of the y histogram of <span class="cy">Y-facing</span> points and of the z histogram of <span class="cz">Z-facing</span> points.</li>
-        <li><b>X signature.</b> The full x histogram of <span class="cx">X-facing</span> points, the ship's barcode.</li>
-        <li><b>Compartments.</b> Bins above 30% of the signature's maximum are bulkheads, which split the ship into 7 compartments.</li>
+        <li><b>평면 목록.</b> <span class="cy">Y 방향</span> 점들의 y 히스토그램 피크와 <span class="cz">Z 방향</span> 점들의 z 히스토그램 피크.</li>
+        <li><b>X 시그니처.</b> <span class="cx">X 방향</span> 점들의 전체 x 히스토그램, 즉 선박의 바코드.</li>
+        <li><b>구획.</b> 시그니처 최댓값의 30%를 넘는 빈은 격벽이며, 선박을 7개 구획으로 나눕니다.</li>
       </ul>
     </div>
     <div class="two">
-      <figure><img src="static/images/mm_classify.png" alt="Map points, their normals, and their axis labels on two slices" loading="lazy"><figcaption>Normals and axis labels on two slices of the map.</figcaption></figure>
-      <figure><img src="static/images/mm_yaw.png" alt="Wall-normal heading histogram and its 4θ fold" loading="lazy"><figcaption>The map's own yaw vote: walls are already aligned with the axes.</figcaption></figure>
-      <figure><img src="static/images/mm_planes.png" alt="Y and Z plane extraction from histograms" loading="lazy"><figcaption>Y and Z planes are the histogram peaks above 200 points.</figcaption></figure>
-      <figure><img src="static/images/mm_signature.png" alt="X signature and compartment detection" loading="lazy"><figcaption>X signature; bulkheads split the ship into compartments c = 0…6.</figcaption></figure>
+      <figure><img src="static/images/mm_classify.png" alt="두 단면에서 지도 점, 법선, 축 라벨" loading="lazy"><figcaption>지도의 두 단면에서 본 법선과 축 라벨.</figcaption></figure>
+      <figure><img src="static/images/mm_yaw.png" alt="벽 법선 방향 히스토그램과 4θ 접기" loading="lazy"><figcaption>지도 자체의 yaw 투표: 벽이 이미 축에 정렬되어 있습니다.</figcaption></figure>
+      <figure><img src="static/images/mm_planes.png" alt="히스토그램에서 Y, Z 평면 추출" loading="lazy"><figcaption>Y, Z 평면은 200점을 넘는 히스토그램 피크입니다.</figcaption></figure>
+      <figure><img src="static/images/mm_signature.png" alt="X 시그니처와 구획 검출" loading="lazy"><figcaption>X 시그니처. 격벽이 선박을 구획 c = 0…6으로 나눕니다.</figcaption></figure>
     </div>
   </div>
 </section>
@@ -229,45 +229,45 @@ weight ∝ exp(−z²/2)</div>
 <section id="dataset">
   <div class="wrap">
     <div class="narrow">
-      <h2>Scan datasets</h2>
-      <p>Two datasets of 31 scans each were recorded in Isaac Sim with an RTX rotating LiDAR (Example_Rotary profile: 360° × −15°…+10°, 10 Hz, 1–200 m range) inside compartment c = 2:</p>
+      <h2>스캔 데이터셋</h2>
+      <p>구획 c = 2 안에서 Isaac Sim의 RTX 회전형 LiDAR(Example_Rotary 프로파일: 360° × −15°…+10°, 10 Hz, 측정 거리 1–200 m)로 각각 31개 스캔으로 된 데이터셋 두 개를 기록했습니다.</p>
       <ul>
-        <li><b>no_yaw</b>: the heading is fixed at 0°.</li>
-        <li><b>yes_yaw</b>: the heading spans −173° to +123°.</li>
+        <li><b>no_yaw</b>: 방향을 0°로 고정했습니다.</li>
+        <li><b>yes_yaw</b>: 방향이 −173°에서 +123°까지 다양합니다.</li>
       </ul>
-      <p>A scan is saved only when the sensor is stationary and level, and the ground-truth pose is interpolated at the scan time.</p>
+      <p>스캔은 센서가 정지해 있고 수평일 때만 저장하며, 정답 자세는 스캔 시각에 맞춰 보간합니다.</p>
     </div>
     <div class="teaser" style="margin-top:12px">
       <video controls muted loop playsinline preload="metadata" poster="static/videos/dataset_scans_poster.jpg">
         <source src="static/videos/dataset_scans.mp4" type="video/mp4">
       </video>
-      <div class="cap">Each scan placed at its ground-truth pose. The map is drawn from the CAD members, with plating cut away and height exaggerated 2.5×.</div>
+      <div class="cap">각 스캔을 정답 자세에 배치한 모습. 지도는 CAD 부재로 그렸으며, 판재는 잘라 내고 높이는 2.5배 과장했습니다.</div>
     </div>
   </div>
 </section>
 
 <section id="results">
   <div class="wrap narrow">
-    <h2>Results</h2>
+    <h2>결과</h2>
     <div class="table-wrap">
       <table class="res">
-        <tr><th>Dataset</th><th>Scans</th><th>Truth in set</th><th>Truth ranked 1st</th><th>Decisive</th><th>Decisive &amp; correct</th><th>Mean hyps.</th><th>Time / scan</th></tr>
+        <tr><th>데이터셋</th><th>스캔 수</th><th>정답 포함</th><th>정답 1위</th><th>확정</th><th>확정 &amp; 정답</th><th>평균 가설 수</th><th>스캔당 시간</th></tr>
         <tr><td>no_yaw (yaw = 0°)</td><td>31</td><td>27</td><td>23</td><td>14</td><td>14</td><td>5.2</td><td>0.86 s</td></tr>
         <tr><td>yes_yaw (yaw −173°…+123°)</td><td>31</td><td>28</td><td>27</td><td>23</td><td>23</td><td>2.5</td><td>0.80 s</td></tr>
       </table>
     </div>
-    <p style="margin-top:14px">Truth in set means a hypothesis within 0.5 m on each axis and 5° in yaw. <b>Every decisive answer was correct</b> (14/14 and 23/23). The method says “I don't know” when it does not know, and is not wrong when it claims to know.</p>
-    <p>Without the compartment prior, the truth is in the set for only 5/31 (no_yaw) and 6/31 (yes_yaw) scans. The remaining misses with the prior are 3 m frame-bay look-alikes that fell outside the candidate budget (4/31 and 3/31).</p>
-    <h3>Why one scan is sometimes not enough</h3>
+    <p style="margin-top:14px">“정답 포함”은 각 축 0.5 m, yaw 5° 이내의 가설이 집합에 있다는 뜻입니다. <b>확정 답변은 모두 정답이었습니다</b> (14/14, 23/23). 이 방법은 모를 때는 “모른다”고 말하고, 안다고 할 때는 틀리지 않습니다.</p>
+    <p>구획 사전 정보가 없으면 정답이 집합에 포함된 스캔은 5/31(no_yaw), 6/31(yes_yaw)에 불과합니다. 사전 정보가 있을 때 남은 실패는 후보 개수 한도 밖으로 밀려난 3 m 프레임 간격의 닮은 위치들입니다(4/31, 3/31).</p>
+    <h3>스캔 한 장으로 부족한 이유</h3>
     <figure>
-      <img src="static/images/tracking_intuition.png" alt="Verification score along the whole hull showing many equal peaks, and how a tracking window isolates the true one" loading="lazy">
-      <figcaption>Holding yaw, y and z at the truth and sliding x along the hull: dozens of positions score within 0.01 of the best. A motion prior (tracking) removes them by searching only near the predicted pose.</figcaption>
+      <img src="static/images/tracking_intuition.png" alt="선체 전체를 따라 본 검증 점수에 비슷한 피크가 많고, 추적 창이 정답 피크만 남기는 모습" loading="lazy">
+      <figcaption>yaw, y, z를 정답에 고정하고 x를 선체를 따라 움직이면, 수십 개 위치가 최고 점수와 0.01 이내로 차이 납니다. 움직임 사전 정보(추적)는 예측 자세 근처만 탐색해 이들을 제거합니다.</figcaption>
     </figure>
   </div>
 </section>
 
 <footer>
-  <div class="wrap">All interactive figures are drawn in the browser from the recorded pipeline traces (<span class="mono">static/data/</span>). Nothing is hand-made.</div>
+  <div class="wrap">모든 인터랙티브 그림은 기록된 파이프라인 trace(<span class="mono">static/data/</span>)로 브라우저에서 그립니다. 손으로 만든 것은 없습니다.</div>
 </footer>
 
 <script src="static/js/demos.js"></script>
