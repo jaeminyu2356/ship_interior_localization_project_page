@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ship Interior Global Localization</title>
+<meta name="description" content="Manhattan-world multi-hypothesis global LiDAR localization inside a ship's double-bottom structure, with interactive explanations of every stage.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Multi-Hypothesis Global LiDAR Localization Inside a Ship's Double Bottom</h1>
+    <p class="sub">A single LiDAR scan, a CAD-derived map, and the Manhattan structure of the hull: the method returns every pose the scan cannot rule out, and commits to one only when it is certain.</p>
+    <div class="buttons">
+      <a class="btn" href="#how">How it works</a>
+      <a class="btn ghost" href="static/videos/pipeline_walkthrough.mp4">Pipeline video</a>
+      <a class="btn ghost" href="static/videos/dataset_scans.mp4">Dataset video</a>
+      <a class="btn ghost" href="#results">Results</a>
+    </div>
+    <div class="teaser">
+      <video controls muted playsinline preload="metadata" poster="static/images/problem.jpg">
+        <source src="static/videos/pipeline_walkthrough.mp4" type="video/mp4">
+      </video>
+      <div class="cap">Supplementary video (2:09): every intermediate result shown is the output of the method on a real Isaac Sim scan.</div>
+    </div>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap narrow">
+    <h2>The problem</h2>
+    <p class="lead">Inside a ship's double bottom, a robot sees floors every 3 m, girders every 1.5 m, and bulkheads every 27 m. Almost every place looks like several others.</p>
+    <p>Global localization asks for the robot's pose (x, y, z, yaw) in the ship map from one LiDAR scan, with no initial guess. In a structure this repetitive, the best-scoring pose is often a look-alike a few frame spaces away. Picking it means being confidently wrong.</p>
+    <p>The method uses the same regularity that causes the problem. The hull is a <em>Manhattan world</em>: its plates face one of three orthogonal directions. That lets the 4-DoF search split into easy 1-D problems (yaw, then y and z, then x). Every pose the scan cannot statistically rule out is then kept, each with a weight.</p>
+    <div class="keypoints">
+      <div><div class="num">9</div><div class="lbl">stages, from wall-normal voting to a weighted hypothesis set</div></div>
+      <div><div class="num">37 / 37</div><div class="lbl">decisive answers that were correct across both datasets</div></div>
+      <div><div class="num">0.8 s</div><div class="lbl">per scan, including the 2,772 → 25 hypothesis screening</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="how" style="padding-bottom:0">
+  <div class="wrap narrow">
+    <h2>How it works, stage by stage</h2>
+    <p>Each stage below runs on the recorded intermediate results of the actual pipeline. Use the controls to see what each step does. The bar at the top switches between two real scans:</p>
+    <ul>
+      <li><b>Case A</b> (no_yaw scan 0): the scan resolves itself. One hypothesis remains.</li>
+      <li><b>Case B</b> (no_yaw scan 2): the scan is ambiguous. Ten hypotheses remain, and the truth is ranked first.</li>
+    </ul>
+  </div>
+</section>
+
+<nav class="pipe-bar" aria-label="Pipeline stages">
+  <div class="wrap">
+    <div class="steps" id="steps">
+      <a href="#s1"><b>1</b>Input</a>
+      <a href="#s2"><b>2</b>Yaw</a>
+      <a href="#s3"><b>3</b>Axes</a>
+      <a href="#s4"><b>4</b>y, z</a>
+      <a href="#s5"><b>5</b>x</a>
+      <a href="#s6"><b>6</b>Screen</a>
+      <a href="#s7"><b>7</b>ICP</a>
+      <a href="#s8"><b>8</b>Paired z</a>
+      <a href="#s9"><b>9</b>Output</a>
+    </div>
+    <div class="case-switch" id="case-switch">
+      <button data-case="a">Case A</button>
+      <button data-case="b" class="on">Case B</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap" id="stages">
+  <div class="loading" id="loading">Loading the recorded pipeline data…</div>
+
+  <!-- 1 ------------------------------------------------------------ -->
+  <div class="stage" id="s1">
+    <div class="text">
+      <span class="no">1</span>
+      <h3>Input: one LiDAR scan</h3>
+      <p>A single scan in the sensor frame, from a simulated 3D LiDAR (Isaac Sim RTX). The pose is unknown. Roll and pitch are assumed zero (level mount), so four unknowns remain: x, y, z, yaw.</p>
+      <p>The raw scan (~300k points) is reduced with a 0.1 m voxel filter to about 6k points. Colour is height.</p>
+      <div class="eq">p_map = R_z(yaw) · p_sensor + (x, y, z)</div>
+    </div>
+    <div class="demo" id="d1"></div>
+  </div>
+
+  <!-- 2 ------------------------------------------------------------ -->
+  <div class="stage" id="s2">
+    <div class="text">
+      <span class="no">2</span>
+      <h3>Yaw hypotheses from wall normals</h3>
+      <p>In a Manhattan world, wall normals point in four directions 90° apart. A plain average of these headings cancels out. Multiplying each angle by 4 folds all four directions onto one, so the circular mean can be taken.</p>
+      <div class="eq">θᵢ = atan2(n_y, n_x)   (walls: |n_z| &lt; 0.2)
+φ = atan2(Σ sin 4θᵢ, Σ cos 4θᵢ) / 4
+ψ_k = −φ + k·90°,  k = 0…3</div>
+      <p>The vote cannot tell the four 90° turns apart, so all four ψ go to the next stage.</p>
+      <div class="try">Try it: rotate the sensor. The θ histogram turns, but the 4θ arrow always recovers the walls' direction. Tick “apply ψ₀” to rotate the walls back onto the axes.</div>
+    </div>
+    <div class="demo" id="d2"></div>
+  </div>
+
+  <!-- 3 ------------------------------------------------------------ -->
+  <div class="stage" id="s3">
+    <div class="text">
+      <span class="no">3</span>
+      <h3>Axis classification</h3>
+      <p>After rotating by a yaw hypothesis, each point is labelled by the axis its surface normal points along. Points whose normal is not clearly aligned with any axis are dropped: edges, corners, and the curved bilge.</p>
+      <ul>
+        <li><span class="cx">X-facing</span>: floors and bulkheads, which cross the ship. These feed the x signature (stage 5).</li>
+        <li><span class="cy">Y-facing</span>: girders and longitudinals. These feed the y estimate.</li>
+        <li><span class="cz">Z-facing</span>: bottom and inner-bottom plating. These feed the z estimate.</li>
+      </ul>
+      <div class="try">Try it: switch to ψ₁. X and Y swap, which is why every hypothesis is carried forward. Move the threshold to see what “clearly aligned” means.</div>
+    </div>
+    <div class="demo" id="d3"></div>
+  </div>
+
+  <!-- 4 ------------------------------------------------------------ -->
+  <div class="stage" id="s4">
+    <div class="text">
+      <span class="no">4</span>
+      <h3>Cross-section voting for y and z</h3>
+      <p>The scan's Y-facing points are histogrammed along y, and the peaks are its local planes. The map has its own plane list (29 Y planes, 11 Z planes). If scan plane <i>o</i> is map plane <i>m</i>, the translation is <i>m − o</i>.</p>
+      <p>The method does not know which pair is right, so every pair votes, weighted by the scan plane's point count. The true translation is where many pairs agree. The six best-supported values are kept per axis, not just the mode.</p>
+      <div class="try">Try it: drag across the plots to slide the scan's planes over the map's. At a good translation, several scan planes land on map planes at once.</div>
+    </div>
+    <div class="demo" id="d4"></div>
+  </div>
+
+  <!-- 5 ------------------------------------------------------------ -->
+  <div class="stage" id="s5">
+    <div class="text">
+      <span class="no">5</span>
+      <h3>Longitudinal correlation for x</h3>
+      <p>Along the ship, the X-facing points form a barcode: a floor every 3 m and a bulkhead every 27 m. The scan has a short barcode of its own. Sliding it along the map's barcode and computing normalized cross-correlation (NCC) at each offset gives a curve over candidate x.</p>
+      <div class="eq">NCC(s) = Σ (Lᵢ − L̄)(G_{s+i} − Ḡ_s) / (‖L − L̄‖ · ‖G_s − Ḡ_s‖)</div>
+      <p>Here the ambiguity becomes visible: a peak stands every 3 m, and the highest is not always the true one. So, within the compartment given as a prior, <b>every</b> peak becomes an x candidate (up to 40, at least 1 m apart).</p>
+      <div class="try">Try it: drag the scan's barcode, or press play. Then turn off the compartment prior. The top-5 peaks over the whole ship usually miss the truth.</div>
+    </div>
+    <div class="demo" id="d5"></div>
+  </div>
+
+  <!-- 6 ------------------------------------------------------------ -->
+  <div class="stage" id="s6">
+    <div class="text">
+      <span class="no">6</span>
+      <h3>Hypothesis screening</h3>
+      <p>Every combination of yaw × x peak × y candidate × z candidate is a full pose: 2,772 in Case B. Each is scored by how well the scan sits on the map, using a smooth kernel instead of an inlier count.</p>
+      <div class="eq">score = mean over points of max(0, 1 − d²/τ²),  τ = 0.25 m</div>
+      <p>The search narrows in steps:</p>
+      <ul>
+        <li>All poses are scored with 100 scan points.</li>
+        <li>The top 150 are rescored with 2,000 points.</li>
+        <li>25 distinct poses (more than 1 m or 9.7° apart) go on to refinement.</li>
+      </ul>
+      <div class="try">Try it: hover over a candidate to place the scan there. Step through the three filters.</div>
+    </div>
+    <div class="demo" id="d6"></div>
+  </div>
+
+  <!-- 7 ------------------------------------------------------------ -->
+  <div class="stage" id="s7">
+    <div class="text">
+      <span class="no">7</span>
+      <h3>4-DoF point-to-plane ICP</h3>
+      <p>The 25 survivors can be tens of centimetres off, from 0.1 m signature bins and plane-vote noise. Each is refined for 10 iterations. In each iteration, 1,000 scan points are matched to the nearest map points and their normals, and the solver finds the [Δyaw, Δx, Δy, Δz] that minimises the point-to-plane distance.</p>
+      <p>The correspondence gate shrinks linearly from 0.8 m to 0.25 m. Early iterations accept large offsets; late iterations only listen to points that truly lie on the map.</p>
+      <div class="try">Try it: scrub the iterations, or pick another candidate. Wrong candidates also converge, onto a look-alike. ICP fixes precision, not ambiguity.</div>
+    </div>
+    <div class="demo" id="d7"></div>
+  </div>
+
+  <!-- 8 ------------------------------------------------------------ -->
+  <div class="stage" id="s8">
+    <div class="text">
+      <span class="no">8</span>
+      <h3>Paired-z selection</h3>
+      <p>Comparing mean scores is not enough. Most points (floor plating, long walls) fit every look-alike equally well and dilute the difference. The method compares the two poses <b>point by point</b> on the same scan points, as in a paired t-test.</p>
+      <div class="eq">dᵢ = score_best(i) − score_rival(i)
+z  = mean(d) / (sd(d) / √n)
+z ≥ 3 → rival ruled out;  z &lt; 3 → kept (max 10)
+weight ∝ exp(−z²/2)</div>
+      <p>Points that fit both poses equally cancel out. Only the few points that tell the two poses apart decide.</p>
+      <div class="try">Try it: switch between rivals. Blue points prefer the best pose, orange points prefer the rival. In Case B the closest rival splits the votes 187 : 187 and survives; in Case A every rival loses clearly.</div>
+    </div>
+    <div class="demo" id="d8"></div>
+  </div>
+
+  <!-- 9 ------------------------------------------------------------ -->
+  <div class="stage" id="s9">
+    <div class="text">
+      <span class="no">9</span>
+      <h3>Output: a weighted hypothesis set</h3>
+      <p>The robot receives every surviving pose, each with its score, its z against the best, and a weight. The result is <b>decisive</b> only when exactly one hypothesis remains.</p>
+      <p>The shape of the set describes the ambiguity. In Case B, the yaw 0° hypotheses are shifted by multiples of the 3 m frame spacing, and the yaw 180° ones are the mirrored position on the other side of the centre girder.</p>
+      <p>Without the compartment prior, look-alikes in other compartments compete and the truth can drop out of the set entirely (strip below the map).</p>
+    </div>
+    <div class="demo" id="d9"></div>
+  </div>
+</div>
+
+<section id="map">
+  <div class="wrap">
+    <div class="narrow">
+      <h2>The prior map</h2>
+      <p>The map is built once, offline, from the CAD model. The model's surfaces are sampled (5.0 M points) and voxelized at 0.2 m (2.0 M points). The same normal estimation and axis classification as in stages 2–3 are then run over the whole cloud. The result is a 6 KB summary:</p>
+      <ul>
+        <li><b>Plane lists.</b> Peaks of the y histogram of <span class="cy">Y-facing</span> points and of the z histogram of <span class="cz">Z-facing</span> points.</li>
+        <li><b>X signature.</b> The full x histogram of <span class="cx">X-facing</span> points, the ship's barcode.</li>
+        <li><b>Compartments.</b> Bins above 30% of the signature's maximum are bulkheads, which split the ship into 7 compartments.</li>
+      </ul>
+    </div>
+    <div class="two">
+      <figure><img src="static/images/mm_classify.png" alt="Map points, their normals, and their axis labels on two slices" loading="lazy"><figcaption>Normals and axis labels on two slices of the map.</figcaption></figure>
+      <figure><img src="static/images/mm_yaw.png" alt="Wall-normal heading histogram and its 4θ fold" loading="lazy"><figcaption>The map's own yaw vote: walls are already aligned with the axes.</figcaption></figure>
+      <figure><img src="static/images/mm_planes.png" alt="Y and Z plane extraction from histograms" loading="lazy"><figcaption>Y and Z planes are the histogram peaks above 200 points.</figcaption></figure>
+      <figure><img src="static/images/mm_signature.png" alt="X signature and compartment detection" loading="lazy"><figcaption>X signature; bulkheads split the ship into compartments c = 0…6.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="dataset">
+  <div class="wrap">
+    <div class="narrow">
+      <h2>Scan datasets</h2>
+      <p>Two datasets of 31 scans each were recorded in Isaac Sim with an RTX rotating LiDAR (Example_Rotary profile: 360° × −15°…+10°, 10 Hz, 1–200 m range) inside compartment c = 2:</p>
+      <ul>
+        <li><b>no_yaw</b>: the heading is fixed at 0°.</li>
+        <li><b>yes_yaw</b>: the heading spans −173° to +123°.</li>
+      </ul>
+      <p>A scan is saved only when the sensor is stationary and level, and the ground-truth pose is interpolated at the scan time.</p>
+    </div>
+    <div class="teaser" style="margin-top:12px">
+      <video controls muted loop playsinline preload="metadata" poster="static/videos/dataset_scans_poster.jpg">
+        <source src="static/videos/dataset_scans.mp4" type="video/mp4">
+      </video>
+      <div class="cap">Each scan placed at its ground-truth pose. The map is drawn from the CAD members, with plating cut away and height exaggerated 2.5×.</div>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap narrow">
+    <h2>Results</h2>
+    <div class="table-wrap">
+      <table class="res">
+        <tr><th>Dataset</th><th>Scans</th><th>Truth in set</th><th>Truth ranked 1st</th><th>Decisive</th><th>Decisive &amp; correct</th><th>Mean hyps.</th><th>Time / scan</th></tr>
+        <tr><td>no_yaw (yaw = 0°)</td><td>31</td><td>27</td><td>23</td><td>14</td><td>14</td><td>5.2</td><td>0.86 s</td></tr>
+        <tr><td>yes_yaw (yaw −173°…+123°)</td><td>31</td><td>28</td><td>27</td><td>23</td><td>23</td><td>2.5</td><td>0.80 s</td></tr>
+      </table>
+    </div>
+    <p style="margin-top:14px">Truth in set means a hypothesis within 0.5 m on each axis and 5° in yaw. <b>Every decisive answer was correct</b> (14/14 and 23/23). The method says “I don't know” when it does not know, and is not wrong when it claims to know.</p>
+    <p>Without the compartment prior, the truth is in the set for only 5/31 (no_yaw) and 6/31 (yes_yaw) scans. The remaining misses with the prior are 3 m frame-bay look-alikes that fell outside the candidate budget (4/31 and 3/31).</p>
+    <h3>Why one scan is sometimes not enough</h3>
+    <figure>
+      <img src="static/images/tracking_intuition.png" alt="Verification score along the whole hull showing many equal peaks, and how a tracking window isolates the true one" loading="lazy">
+      <figcaption>Holding yaw, y and z at the truth and sliding x along the hull: dozens of positions score within 0.01 of the best. A motion prior (tracking) removes them by searching only near the predicted pose.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">All interactive figures are drawn in the browser from the recorded pipeline traces (<span class="mono">static/data/</span>). Nothing is hand-made.</div>
+</footer>
+
+<script src="static/js/demos.js"></script>
+</body>
+</html>
