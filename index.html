@@ -68,6 +68,51 @@
   </div>
 </section>
 
+<section id="map">
+  <div class="wrap">
+    <div class="narrow">
+      <h2>비교 기준: 맨해튼 지도 만들기</h2>
+      <p class="lead">위치 추정은 스캔을 <b>미리 만들어 둔 지도</b>와 맞춰 보는 일입니다. 이 지도는 로봇이 움직이기 전에, 선박 설계(CAD) 모델에서 한 번만 만듭니다.</p>
+      <p>지도 전체를 매번 스캔과 비교하면 너무 느립니다. 그래서 맨해튼 구조를 이용해 지도를 방향별 <b>1차원 요약</b>으로 줄여 둡니다. 아래 단계별 설명의 4–5단계에서 스캔과 비교하는 대상이 바로 이 요약입니다.</p>
+    </div>
+    <figure>
+      <img src="static/images/map_flow_ko.png" alt="CAD 모델, 표면 점군, 면 방향 분류, 그리고 Y 평면 목록, Z 평면 목록, x 시그니처로 이어지는 지도 생성 과정" loading="lazy">
+      <figcaption>지도 만드는 과정. ①–③은 구획 c = 2의 이중저 일부를 확대한 것이고, ④는 배 전체에 대한 결과입니다.</figcaption>
+    </figure>
+    <div class="narrow">
+      <ol>
+        <li><b>CAD 모델.</b> 늑판(3 m 간격), 거더와 종늑골, 격벽(약 27 m 간격)으로 이루어진 길이 190 m의 선체 모델입니다. 시뮬레이터에서 스캔을 찍은 장면과 같은 모델입니다.</li>
+        <li><b>표면 점군.</b> 모델의 모든 면에서 점을 뽑고(약 501만 점) 0.2 m 간격으로 줄입니다(약 197만 점). 6–8단계에서 후보 자세를 지도에 직접 대 볼 때 이 점군을 씁니다.</li>
+        <li><b>면 방향 분류.</b> 점마다 법선을 구해 X / Y / Z 향으로 나눕니다. 스캔에서 하는 처리(2–3단계)와 <b>똑같은 방법</b>을 쓰기 때문에 지도와 스캔이 같은 기준으로 비교됩니다.</li>
+        <li><b>1차원 요약.</b> 방향별로 "그 방향을 보는 면이 어디에 있는가"만 셉니다. 결과는 아래 세 가지이며, 지도 파일 전체가 약 6 KB입니다.</li>
+      </ol>
+      <div class="table-wrap">
+        <table class="res">
+          <tr><th>지도에 저장되는 것</th><th style="text-align:left">만드는 법</th><th>쓰이는 곳</th></tr>
+          <tr><td><span class="cy">Y 평면 목록</span> (29개)</td><td style="text-align:left">Y 향 점의 y 위치를 세었을 때 점이 몰리는 곳</td><td>4단계: y 후보</td></tr>
+          <tr><td><span class="cz">Z 평면 목록</span> (11개)</td><td style="text-align:left">Z 향 점의 z 위치를 같은 방법으로</td><td>4단계: z 후보</td></tr>
+          <tr><td><span class="cx">x 시그니처</span></td><td style="text-align:left">X 향 점의 x 위치를 0.1 m 칸으로 센 분포 전체 (배의 바코드)</td><td>5단계: x 후보</td></tr>
+          <tr><td>구획 (7개)</td><td style="text-align:left">x 시그니처에서 아주 높은 봉우리 = 격벽, 그 사이 = 구획</td><td>5단계: 탐색 범위</td></tr>
+        </table>
+      </div>
+
+      <h3>점마다 면의 방향 정하기</h3>
+      <p>각 점 주변 0.3 m 안의 이웃 점들에 평면을 맞추면 그 점의 법선이 나옵니다. 법선이 x, y, z 축 중 하나와 거의 나란하면 그 축의 "향" 점이 되고, 어느 축과도 맞지 않는 모서리와 곡면 선체는 버립니다.</p>
+    </div>
+    <figure><img src="static/images/mm_classify_ko.png" alt="지도의 두 단면에서 점, 법선 화살표, 축 분류 결과" loading="lazy"></figure>
+    <div class="narrow">
+      <h3>평면 목록: 위치를 세면 평면이 보인다</h3>
+      <p>세로로 선 거더 한 장 위의 점들은 모두 같은 y 위치에 있습니다. 그래서 Y 향 점들의 y 위치를 세면 거더가 있는 곳마다 뾰족한 봉우리가 생기고, 그 봉우리 위치가 곧 평면 위치입니다. 바닥판과 내저판도 Z 향 점의 높이로 같은 방법을 씁니다.</p>
+    </div>
+    <figure><img src="static/images/mm_planes_ko.png" alt="배 전체를 길이 방향으로 겹쳐 본 단면과 y, z 히스토그램, 저장된 평면 위치" loading="lazy"></figure>
+    <div class="narrow">
+      <h3>x 시그니처와 구획: 배의 바코드</h3>
+      <p>길이 방향(x)은 다르게 다룹니다. 늑판이 3 m마다 똑같이 반복되어 위치 목록만으로는 어느 늑판인지 구분할 수 없기 때문에, X 향 점의 x 위치 분포를 <b>통째로</b> 저장합니다. 격벽 봉우리는 늑판보다 수십 배 높아서, 이것으로 배를 구획 7개로 나눕니다. 데이터셋은 모두 구획 c = 2(x 54–81 m)에서 찍었습니다.</p>
+    </div>
+    <figure><img src="static/images/mm_signature_ko.png" alt="X 향 점의 측면도, 배 전체의 x 시그니처와 구획 경계, 구획 c=2 확대" loading="lazy"></figure>
+  </div>
+</section>
+
 <section id="how" style="padding-bottom:0">
   <div class="wrap narrow">
     <h2>단계별 작동 원리</h2>
@@ -76,6 +121,7 @@
       <li><b>Case A</b> (no_yaw 스캔 0): 스캔만으로 답이 정해집니다. 가설이 하나만 남습니다.</li>
       <li><b>Case B</b> (no_yaw 스캔 2): 스캔이 모호합니다. 가설 10개가 남고, 정답이 1위입니다.</li>
     </ul>
+    <p><b>정답(ground truth)이란?</b> 데모에 나오는 검은 원과 점선은 시뮬레이터가 기록한 센서의 <b>실제 위치와 방향</b>입니다. 결과가 맞았는지 확인하려고 표시할 뿐, 알고리즘은 이 값을 보지 않습니다. 알고리즘이 쓰는 것은 스캔 한 장과 위의 지도뿐입니다.</p>
   </div>
 </section>
 
@@ -148,7 +194,7 @@
     <div class="text">
       <span class="no">4</span>
       <h3>단면 투표로 y, z 구하기</h3>
-      <p>스캔의 Y 방향 점들을 y축으로 히스토그램을 만들면, 피크가 스캔 주변의 평면들입니다. 지도에도 자체 평면 목록(Y 평면 29개, Z 평면 11개)이 있습니다. 스캔 평면 하나가 지도 평면 하나와 같은 면이라면, 두 위치의 차이만큼 스캔을 옮기면 됩니다.</p>
+      <p>스캔의 Y 방향 점들을 y축으로 히스토그램을 만들면, 피크가 스캔 주변의 평면들입니다. 이것을 앞에서 만든 지도의 평면 목록(Y 평면 29개, Z 평면 11개)과 비교합니다. 스캔 평면 하나가 지도 평면 하나와 같은 면이라면, 두 위치의 차이만큼 스캔을 옮기면 됩니다.</p>
       <p>어느 쌍이 맞는지 모르므로 모든 쌍이 스캔 평면의 점 개수만큼 가중치를 두고 투표합니다. 많은 쌍이 동의하는 값이 진짜 이동량입니다. 최빈값 하나가 아니라, 축마다 지지가 가장 높은 값 6개를 남깁니다.</p>
       <div class="try">해 보기: 그래프를 드래그해 스캔 평면을 지도 평면 위로 밀어 보세요. 이동량이 맞으면 여러 스캔 평면이 동시에 지도 평면에 겹칩니다.</div>
     </div>
@@ -223,26 +269,6 @@
     <div class="demo" id="d9"></div>
   </div>
 </div>
-
-<section id="map">
-  <div class="wrap">
-    <div class="narrow">
-      <h2>사전 지도</h2>
-      <p>지도는 CAD 모델로부터 오프라인에서 한 번 만듭니다. 모델 표면을 샘플링(500만 점)하고 0.2 m로 복셀화(200만 점)합니다. 그다음 2–3단계와 같은 법선 추정과 축 분류를 전체 점군에 적용합니다. 결과는 6 KB짜리 요약입니다.</p>
-      <ul>
-        <li><b>평면 목록.</b> <span class="cy">Y 방향</span> 점들의 y 히스토그램 피크와 <span class="cz">Z 방향</span> 점들의 z 히스토그램 피크.</li>
-        <li><b>X 시그니처.</b> <span class="cx">X 방향</span> 점들의 전체 x 히스토그램, 즉 선박의 바코드.</li>
-        <li><b>구획.</b> 시그니처 최댓값의 30%를 넘는 빈은 격벽이며, 선박을 7개 구획으로 나눕니다.</li>
-      </ul>
-    </div>
-    <div class="two">
-      <figure><img src="static/images/mm_classify.png" alt="두 단면에서 지도 점, 법선, 축 라벨" loading="lazy"><figcaption>지도의 두 단면에서 본 법선과 축 라벨.</figcaption></figure>
-      <figure><img src="static/images/mm_yaw.png" alt="벽 법선 방향 히스토그램과 각도를 4배 해 하나로 겹친 분포" loading="lazy"><figcaption>지도 자체의 yaw 투표: 벽이 이미 축에 정렬되어 있습니다.</figcaption></figure>
-      <figure><img src="static/images/mm_planes.png" alt="히스토그램에서 Y, Z 평면 추출" loading="lazy"><figcaption>Y, Z 평면은 200점을 넘는 히스토그램 피크입니다.</figcaption></figure>
-      <figure><img src="static/images/mm_signature.png" alt="X 시그니처와 구획 검출" loading="lazy"><figcaption>X 시그니처. 격벽이 선박을 구획 c = 0…6으로 나눕니다.</figcaption></figure>
-    </div>
-  </div>
-</section>
 
 <section id="dataset">
   <div class="wrap">
