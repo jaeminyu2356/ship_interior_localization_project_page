@@ -37,11 +37,6 @@
     <p class="lead">선박 이중저 안에서 로봇은 3 m마다 플로어, 1.5 m마다 거더, 27 m마다 격벽을 봅니다. 거의 모든 위치가 다른 여러 위치와 비슷해 보입니다.</p>
     <p>전역 위치 추정은 초기 추정값 없이 LiDAR 스캔 한 장만으로 선박 지도 안에서 로봇의 자세(x, y, z, yaw)를 구하는 문제입니다. 이렇게 반복적인 구조에서는 점수가 가장 높은 자세가 몇 프레임 간격 떨어진 닮은 위치인 경우가 많습니다. 그것을 고르면 확신을 가지고 틀리게 됩니다.</p>
     <p>이 방법은 문제를 일으키는 바로 그 규칙성을 이용합니다. 선체는 <em>맨해튼 월드</em>입니다. 모든 판재가 서로 직교하는 세 방향 중 하나를 향합니다. 덕분에 4자유도 탐색을 쉬운 1차원 문제들(yaw, 다음으로 y와 z, 마지막으로 x)로 나눌 수 있습니다. 그런 다음 스캔으로 통계적으로 배제할 수 없는 자세는 모두 가중치와 함께 남겨 둡니다.</p>
-    <div class="keypoints">
-      <div><div class="num">9</div><div class="lbl">단계: 벽 법선 투표부터 가중치가 붙은 가설 집합까지</div></div>
-      <div><div class="num">37 / 37</div><div class="lbl">두 데이터셋에서 확정 답변이 모두 정답</div></div>
-      <div><div class="num">0.8 s</div><div class="lbl">스캔당 소요 시간 (2,772 → 25 가설 선별 포함)</div></div>
-    </div>
   </div>
 </section>
 
@@ -84,7 +79,7 @@
     <div class="text">
       <span class="no">1</span>
       <h3>입력: LiDAR 스캔 한 장</h3>
-      <p>시뮬레이션된 3D LiDAR(Isaac Sim RTX)로 얻은 센서 좌표계의 스캔 한 장입니다. 자세는 알 수 없습니다. 센서가 수평으로 장착되어 roll과 pitch가 0이라고 가정하므로, 미지수는 x, y, z, yaw 네 개입니다.</p>
+      <p>시뮬레이션된 3D LiDAR(Isaac Sim RTX)로 얻은 센서 좌표계의 스캔 한 장입니다. 자세는 알 수 없으며, 구하는 값은 x, y, z, yaw 네 개입니다.</p>
       <p>원시 스캔(약 30만 점)을 0.1 m 복셀 필터로 약 6천 점까지 줄입니다. 색은 높이를 나타냅니다.</p>
       <div class="eq">p_map = R_z(yaw) · p_sensor + (x, y, z)</div>
     </div>
@@ -235,7 +230,7 @@ weight ∝ exp(−z²/2)</div>
         <li><b>no_yaw</b>: 방향을 0°로 고정했습니다.</li>
         <li><b>yes_yaw</b>: 방향이 −173°에서 +123°까지 다양합니다.</li>
       </ul>
-      <p>스캔은 센서가 정지해 있고 수평일 때만 저장하며, 정답 자세는 스캔 시각에 맞춰 보간합니다.</p>
+      <p>스캔은 센서가 정지해 있을 때만 저장하며, 정답 자세는 스캔 시각에 맞춰 보간합니다.</p>
     </div>
     <div class="teaser" style="margin-top:12px">
       <video controls muted loop playsinline preload="metadata" poster="static/videos/dataset_scans_poster.jpg">
