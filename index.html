@@ -7,19 +7,23 @@
 <meta name="description" content="선박 이중저 구조 내부에서 맨해튼 월드 가정을 이용한 다중 가설 LiDAR 전역 위치 추정. 모든 단계를 인터랙티브하게 설명합니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Serif+KR:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
 <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
 
 <header class="hero">
   <div class="wrap">
-    <h1>선박 이중저 내부에서의 다중 가설 LiDAR 전역 위치 추정</h1>
+    <p class="kicker">Ship interior Localizer</p>
+    <h1>선박 이중저 내부에서의 <br>다중 가설 LiDAR 전역 위치 추정</h1>
+    <p class="byline"><b>유재민</b> · 컴퓨터공학부 석사과정 · Spatial Intelligence (SPIN) Lab., KOREATECH</p>
     <p class="sub">지도는 있지만 내가 그 지도 위 어디인지 모를 때. 선박 이중저 안에서 <b>LiDAR 스캔 한 장</b>과 <b>CAD 지도</b>만으로 로봇의 위치(x, y, z)와 바라보는 방향(yaw)을 찾습니다. 골조가 똑같이 반복되어 답이 모호할 때는 하나를 억지로 고르지 않고, 스캔으로 배제할 수 없는 자세를 모두 가중치와 함께 돌려줍니다.</p>
     <div class="buttons">
-      <a class="btn" href="#problem">① 무슨 문제인가</a>
-      <a class="btn ghost" href="#idea">② 핵심 아이디어</a>
-      <a class="btn ghost" href="#how">③ 단계별 작동 원리</a>
+      <a class="btn" href="#problem">문제</a>
+      <a class="btn ghost" href="#idea">핵심 아이디어</a>
+      <a class="btn ghost" href="#how">작동 원리</a>
       <a class="btn ghost" href="#results">결과</a>
       <a class="btn ghost" href="static/videos/pipeline_walkthrough.mp4">파이프라인 영상</a>
     </div>
@@ -35,7 +39,8 @@
 <section id="problem">
   <div class="wrap">
     <div class="narrow">
-      <h2>① 무슨 문제인가</h2>
+      <p class="eyebrow">문제</p>
+      <h2>지도는 있는데, 내가 어디인지 모른다</h2>
       <p class="lead">전역 위치 추정(global localization)은 <b>지도는 있지만 내가 지도 위 어디인지 전혀 모를 때, 처음으로 내 위치를 찾아내는</b> 문제입니다. 이 프로젝트는 선박 이중저(선체 바닥의 이중 구조) 안에서, LiDAR 스캔 한 장만으로 이 문제를 풉니다.</p>
       <p>구해야 하는 값은 네 개입니다.</p>
     </div>
@@ -64,7 +69,8 @@
 <section id="idea">
   <div class="wrap">
     <div class="narrow">
-      <h2>② 핵심 아이디어: 한 번에 풀지 않고 한 축씩 푼다</h2>
+      <p class="eyebrow">핵심 아이디어</p>
+      <h2>한 번에 풀지 않고, 한 축씩 푼다</h2>
       <p class="lead">반복 구조가 문제를 만들지만, 그 구조의 <b>직각성</b>이 해결의 열쇠입니다. 선박 중앙부는 모든 면이 x, y, z 중 한 방향만 바라보는 <b>맨해튼 공간</b>이어서, 4자유도 탐색을 1차원 문제 여러 개로 쪼갤 수 있습니다.</p>
       <h3>쓰는 재료는 두 가지뿐</h3>
     </div>
@@ -77,11 +83,11 @@
       <p>한 단계에서 하나씩 좁혀 갑니다. 앞 단계의 답이 정해져야 다음 단계를 1차원 문제로 만들 수 있기 때문에 순서가 중요합니다.</p>
     </div>
     <div class="flow">
-      <div class="fb"><span class="t">1단계</span><b>방향 ψ</b><p>벽이 바라보는 네 방향에서 회전각을 읽습니다. 내 위치를 몰라도 풀립니다.<br><b>먼저 해야 하는 이유</b> — 방향을 모르면 스캔의 어떤 면이 지도의 x면인지 y면인지조차 구분할 수 없습니다.</p></div>
+      <div class="fb f1"><span class="t">1단계</span><b>방향 ψ</b><p>벽이 바라보는 네 방향에서 회전각을 읽습니다. 내 위치를 몰라도 풀립니다.<br><b>먼저 해야 하는 이유</b> — 방향을 모르면 스캔의 어떤 면이 지도의 x면인지 y면인지조차 구분할 수 없습니다.</p></div>
       <div class="fa" aria-hidden="true">→</div>
-      <div class="fb"><span class="t">2단계</span><b>높이 z · 폭 y</b><p>바닥판·거더가 놓인 위치 목록을 스캔과 지도에서 각각 뽑아 맞춰 봅니다. 간격이 불규칙해서 비교적 쉽게 좁혀집니다.</p></div>
+      <div class="fb f2"><span class="t">2단계</span><b>높이 z · 폭 y</b><p>바닥판·거더가 놓인 위치 목록을 스캔과 지도에서 각각 뽑아 맞춰 봅니다. 간격이 불규칙해서 비교적 쉽게 좁혀집니다.</p></div>
       <div class="fa" aria-hidden="true">→</div>
-      <div class="fb"><span class="t">3단계</span><b>길이 x</b><p>가장 모호한 축입니다. 늑판이 3 m마다 반복되므로 위치만으로는 가릴 수 없어, 분포의 <b>모양</b>(배의 바코드)을 비교합니다.</p></div>
+      <div class="fb f3"><span class="t">3단계</span><b>길이 x</b><p>가장 모호한 축입니다. 늑판이 3 m마다 반복되므로 위치만으로는 가릴 수 없어, 분포의 <b>모양</b>(배의 바코드)을 비교합니다.</p></div>
     </div>
     <div class="narrow">
       <h3>그리고: 1등만 고르지 않는다</h3>
@@ -102,6 +108,7 @@
 <section id="manhattan">
   <div class="wrap">
     <div class="narrow">
+      <p class="eyebrow">배경</p>
       <h2>맨해튼 구조란?</h2>
       <p class="lead">뉴욕 맨해튼의 거리가 바둑판처럼 직각으로 나 있듯이, 주요 면들이 <b>서로 직교하는 세 방향 중 하나만</b> 바라보는 환경을 맨해튼 월드(Manhattan world)라고 부릅니다.</p>
       <p>선박 중앙부의 이중저가 바로 그렇습니다. 배를 가로지르는 <span class="cx">늑판과 격벽</span>은 배 길이 방향(x)을, 배를 따라 뻗은 <span class="cy">거더와 종늑골</span>은 폭 방향(y)을, <span class="cz">바닥판과 내저판</span>은 위아래(z)를 바라봅니다. 면이 바라보는 방향, 즉 면에 수직인 화살표를 <b>법선(normal)</b>이라고 합니다.</p>
@@ -141,7 +148,8 @@
 <section id="map">
   <div class="wrap">
     <div class="narrow">
-      <h2>비교 기준: 맨해튼 지도 만들기</h2>
+      <p class="eyebrow">비교 기준</p>
+      <h2>CAD로 맨해튼 지도 만들기</h2>
       <p class="lead">위치 추정은 스캔을 <b>미리 만들어 둔 지도</b>와 맞춰 보는 일입니다. 이 지도는 로봇이 움직이기 전에, 선박 설계(CAD) 모델에서 한 번만 만듭니다.</p>
       <p>지도 전체를 매번 스캔과 비교하면 너무 느립니다. 그래서 맨해튼 구조를 이용해 지도를 방향별 <b>1차원 요약</b>으로 줄여 둡니다. 아래 단계별 설명의 4–5단계에서 스캔과 비교하는 대상이 바로 이 요약입니다.</p>
     </div>
@@ -185,7 +193,8 @@
 
 <section id="how" style="padding-bottom:0">
   <div class="wrap narrow">
-    <h2>③ 단계별 작동 원리</h2>
+    <p class="eyebrow">작동 원리</p>
+    <h2>9단계 파이프라인</h2>
     <p class="lead">전체는 9단계입니다. 크게 보면 앞쪽은 <b>후보를 넉넉히 만드는 단계</b>, 뒤쪽은 <b>만든 후보를 지우는 단계</b>입니다.</p>
     <div class="cards two-up">
       <div><h4>1–5단계 · 넓히기</h4><p>4자유도 문제를 축별 1차원 문제로 쪼개, 각 축의 후보를 가능한 한 놓치지 않게 모읍니다. 이 단계의 목표는 ‘정답 고르기’가 아니라 <b>정답을 후보 안에 넣는 것</b>입니다.</p></div>
@@ -270,7 +279,7 @@
         <p>90° × 4 = 360°이므로, 4를 곱하는 순간 벽 사이의 90° 차이가 ‘한 바퀴’가 되어 사라집니다.</p>
       </details>
       <p>대신 같은 이유로 이 계산은 90°씩 다른 네 회전을 구별하지 못합니다(10°·100°·190°·280°가 모두 40°가 되므로). 벽만 봐서는 어느 쪽이 앞인지 알 수 없기 때문입니다. 그래서 yaw 가설 네 개를 모두 다음 단계로 넘기고, 최종 결정은 6·8단계에서 내립니다.</p>
-      <div class="try">해 보기: 센서 방향을 돌려 보세요. 가운데 벽 방향 분포는 함께 돌지만, 오른쪽의 4배 한 분포의 화살표는 항상 벽 방향을 찾아냅니다. “첫 번째 yaw 가설 적용”을 체크하면 벽이 축에 맞게 다시 회전합니다.</div>
+      <div class="try">센서 방향을 돌려 보세요. 가운데 벽 방향 분포는 함께 돌지만, 오른쪽의 4배 한 분포의 화살표는 항상 벽 방향을 찾아냅니다. “첫 번째 yaw 가설 적용”을 체크하면 벽이 축에 맞게 다시 회전합니다.</div>
     </div>
     <div class="demo" id="d2"></div>
   </div>
@@ -286,7 +295,7 @@
         <li><span class="cy">Y 방향</span>: 거더와 종통재입니다. y 추정에 쓰입니다.</li>
         <li><span class="cz">Z 방향</span>: 선저판과 내저판입니다. z 추정에 쓰입니다.</li>
       </ul>
-      <div class="try">해 보기: 두 번째 yaw 가설(약 90°)로 바꿔 보세요. X와 Y가 뒤바뀝니다. 그래서 모든 가설을 다음 단계로 가져갑니다. 임계값을 움직여 “뚜렷하게 정렬됨”이 무슨 뜻인지 확인해 보세요.</div>
+      <div class="try">두 번째 yaw 가설(약 90°)로 바꿔 보세요. X와 Y가 뒤바뀝니다. 그래서 모든 가설을 다음 단계로 가져갑니다. 임계값을 움직여 “뚜렷하게 정렬됨”이 무슨 뜻인지 확인해 보세요.</div>
     </div>
     <div class="demo" id="d3"></div>
   </div>
@@ -304,7 +313,7 @@
         <p>그래서 모든 짝의 차이를 다 계산해 표를 모으고(허프 투표), 가장 많은 벽이 동시에 겹치는 이동량을 고릅니다.</p>
         <p><b>왜 1등만 쓰지 않나</b> — 실제 스캔에서 1위가 1,043표, 2~5위가 972표였습니다. 차이가 7%뿐입니다. 간격이 비슷한 거더·갑판이 많아 1등이 틀리는 일이 흔하므로, 축마다 상위 6개를 남깁니다.</p>
       </details>
-      <div class="try">해 보기: 그래프를 드래그해 스캔 평면을 지도 평면 위로 밀어 보세요. 이동량이 맞으면 여러 스캔 평면이 동시에 지도 평면에 겹칩니다.</div>
+      <div class="try">그래프를 드래그해 스캔 평면을 지도 평면 위로 밀어 보세요. 이동량이 맞으면 여러 스캔 평면이 동시에 지도 평면에 겹칩니다.</div>
     </div>
     <div class="demo" id="d4"></div>
   </div>
@@ -339,7 +348,7 @@
         </table>
       </details>
       <p>여기서 모호성이 눈에 보입니다. 3 m마다 피크가 서 있고, 가장 높은 피크가 항상 정답은 아닙니다. 그래서 사전 정보로 주어진 구획 안에서는 <b>모든</b> 피크를 x 후보로 삼습니다(최대 40개, 서로 1 m 이상 떨어짐).</p>
-      <div class="try">해 보기: 스캔 바코드를 드래그하거나 재생을 눌러 보세요. 그다음 구획 사전 정보를 꺼 보세요. 선박 전체에서 상위 5개 피크는 대개 정답을 놓칩니다.</div>
+      <div class="try">스캔 바코드를 드래그하거나 재생을 눌러 보세요. 그다음 구획 사전 정보를 꺼 보세요. 선박 전체에서 상위 5개 피크는 대개 정답을 놓칩니다.</div>
     </div>
     <div class="demo" id="d5"></div>
   </div>
@@ -362,7 +371,7 @@
         <li>상위 150개를 점 2,000개로 다시 점수를 매깁니다.</li>
         <li>서로 다른 자세 25개(1 m 또는 9.7° 이상 차이)를 정밀화 단계로 보냅니다.</li>
       </ul>
-      <div class="try">해 보기: 후보 위에 마우스를 올리면 스캔이 그 위치에 놓입니다. 세 단계 필터를 차례로 넘겨 보세요.</div>
+      <div class="try">후보 위에 마우스를 올리면 스캔이 그 위치에 놓입니다. 세 단계 필터를 차례로 넘겨 보세요.</div>
     </div>
     <div class="demo" id="d6"></div>
   </div>
@@ -374,7 +383,7 @@
       <h3>4자유도 point-to-plane ICP</h3>
       <p>살아남은 25개는 0.1 m 시그니처 빈과 평면 투표 잡음 때문에 수십 cm 어긋나 있을 수 있습니다. 각각을 10회 반복으로 정밀화합니다. 매 반복마다 스캔 점 1,000개를 가장 가까운 지도 점과 그 법선에 대응시키고, point-to-plane 거리를 최소화하는 [Δyaw, Δx, Δy, Δz]를 구합니다.</p>
       <p>대응 게이트는 0.8 m에서 0.25 m로 선형으로 줄어듭니다. 초반 반복은 큰 어긋남도 받아들이고, 후반 반복은 실제로 지도 위에 놓인 점만 반영합니다.</p>
-      <div class="try">해 보기: 반복 횟수를 움직이거나 다른 후보를 골라 보세요. 틀린 후보도 닮은 위치로 수렴합니다. ICP는 정밀도를 고칠 뿐, 모호성을 해결하지는 않습니다.</div>
+      <div class="try">반복 횟수를 움직이거나 다른 후보를 골라 보세요. 틀린 후보도 닮은 위치로 수렴합니다. ICP는 정밀도를 고칠 뿐, 모호성을 해결하지는 않습니다.</div>
     </div>
     <div class="demo" id="d7"></div>
   </div>
@@ -399,7 +408,7 @@
         </table>
         <p>Case A는 평균 차이가 우연 폭의 13.7배라 확실히 가릴 수 있고, Case B는 0.81배 — 이 스캔만으로는 가릴 수 없다는 뜻입니다.</p>
       </details>
-      <div class="try">해 보기: 경쟁 가설을 바꿔 보세요. 파란 점은 최선의 자세를, 주황 점은 경쟁 가설을 지지합니다. Case B에서는 가장 가까운 경쟁 가설이 187 : 186으로 표가 갈려 살아남고, Case A에서는 모든 경쟁 가설이 확실히 집니다.</div>
+      <div class="try">경쟁 가설을 바꿔 보세요. 파란 점은 최선의 자세를, 주황 점은 경쟁 가설을 지지합니다. Case B에서는 가장 가까운 경쟁 가설이 187 : 186으로 표가 갈려 살아남고, Case A에서는 모든 경쟁 가설이 확실히 집니다.</div>
     </div>
     <div class="demo" id="d8"></div>
   </div>
@@ -421,6 +430,7 @@
 <section id="dataset">
   <div class="wrap">
     <div class="narrow">
+      <p class="eyebrow">실험 환경</p>
       <h2>스캔 데이터셋</h2>
       <p>구획 c = 2 안에서 Isaac Sim의 RTX 회전형 LiDAR(Example_Rotary 프로파일: 360° × −15°…+10°, 10 Hz, 측정 거리 1–200 m)로 각각 31개 스캔으로 된 데이터셋 두 개를 기록했습니다.</p>
       <ul>
@@ -440,7 +450,8 @@
 
 <section id="results">
   <div class="wrap narrow">
-    <h2>결과</h2>
+    <p class="eyebrow">결과</p>
+    <h2>확정 답변은 모두 정답이었습니다</h2>
     <p class="lead">Isaac Sim에서 기록한 스캔 62장(데이터셋 2개 × 31장)에 그대로 돌린 결과입니다.</p>
     <p class="note"><b>표 읽는 법</b> — <b>정답 포함</b>: 남은 가설 중에 정답이 들어 있던 스캔 수. <b>정답 1위</b>: 그중 정답이 가중치 1위였던 수. <b>확정</b>: 경쟁 가설이 모두 배제되어 가설이 하나만 남은 수. <b>확정 &amp; 정답</b>: 그 확정 답이 실제로 맞았던 수 — 이 두 숫자가 같아야 “안다고 할 때는 틀리지 않는다”가 성립합니다.</p>
     <div class="table-wrap">
@@ -450,7 +461,7 @@
         <tr><td>yes_yaw (yaw −173°…+123°)</td><td>31</td><td>28</td><td>27</td><td>23</td><td>23</td><td>2.5</td><td>0.80 s</td></tr>
       </table>
     </div>
-    <p style="margin-top:14px">“정답 포함”은 각 축 0.5 m, yaw 5° 이내의 가설이 집합에 있다는 뜻입니다. <b>확정 답변은 모두 정답이었습니다</b> (14/14, 23/23). 이 방법은 모를 때는 “모른다”고 말하고, 안다고 할 때는 틀리지 않습니다.</p>
+    <p style="margin-top:14px">“정답 포함”은 각 축 0.5 m, yaw 5° 이내의 가설이 집합에 있다는 뜻입니다. 하나로 확정한 37번 가운데 틀린 것은 <b>한 번도 없었습니다</b>(14/14, 23/23). 모를 때는 “모른다”고 말하고, 안다고 할 때는 틀리지 않습니다.</p>
     <p>구획 사전 정보가 없으면 정답이 집합에 포함된 스캔은 5/31(no_yaw), 6/31(yes_yaw)에 불과합니다. 사전 정보가 있을 때 남은 실패는 후보 개수 한도 밖으로 밀려난 3 m 프레임 간격의 닮은 위치들입니다(4/31, 3/31).</p>
   </div>
 </section>
@@ -458,7 +469,8 @@
 <section id="limits">
   <div class="wrap">
     <div class="narrow">
-      <h2>한계</h2>
+      <p class="eyebrow">한계</p>
+      <h2>아직 안 되는 것</h2>
       <p class="lead">무엇이 아직 안 되는지도 분명히 해 둡니다.</p>
     </div>
     <div class="cards">
@@ -478,7 +490,10 @@
 </section>
 
 <footer>
-  <div class="wrap">모든 인터랙티브 그림은 기록된 파이프라인 trace(<span class="mono">static/data/</span>)로 브라우저에서 그립니다. 손으로 만든 것은 없습니다.</div>
+  <div class="wrap">
+    <div>모든 인터랙티브 그림은 기록된 파이프라인 trace(<span class="mono">static/data/</span>)로 브라우저에서 그립니다. 손으로 만든 것은 없습니다.</div>
+    <div><b>유재민</b> · Spatial Intelligence (SPIN) Lab., KOREATECH</div>
+  </div>
 </footer>
 
 <script src="static/js/demos.js"></script>

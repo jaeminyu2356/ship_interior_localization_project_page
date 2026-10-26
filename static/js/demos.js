@@ -5,7 +5,7 @@
 
   const COL = {
     x: "#d4582a", y: "#2a78d6", z: "#158f63", drop: "#c3c8ce",
-    ink: "#15191e", ink2: "#48505a", muted: "#6b737c", rule: "#e2e5e8",
+    ink: "#14181d", ink2: "#4b535d", muted: "#878e97", rule: "#e4e7ea",
     map: "#b4bac1", faint: "#e9ecef", pale: "#a9c6ea", accent: "#2a78d6",
   };
   const DEG = 180 / Math.PI;
@@ -157,7 +157,7 @@
     ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
   }
   function text(ctx, s, x, y, { color = COL.ink2, size = 12, align = "left", base = "alphabetic", weight = "" } = {}) {
-    ctx.font = `${weight} ${size}px "IBM Plex Sans", "Noto Sans KR", system-ui, sans-serif`;
+    ctx.font = `${weight} ${size}px "Pretendard Variable", Pretendard, system-ui, sans-serif`;
     ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(s, x, y);
   }
   function vline(ctx, x, y0, y1, color, dash = [], lw = 1) {
@@ -916,7 +916,7 @@
       return;
     }
     // Canvas text does not trigger web-font loading, so load the Korean face before drawing.
-    try { await Promise.all([document.fonts.load('12px "Noto Sans KR"'), document.fonts.load('600 12px "Noto Sans KR"')]); } catch (e) { /* fall back to system fonts */ }
+    try { await Promise.all([document.fonts.load('12px "Pretendard Variable"'), document.fonts.load('600 12px "Pretendard Variable"')]); } catch (e) { /* fall back to system fonts */ }
     $("#loading").remove();
     S.psi = C().true_stage;
     const ids = ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d0"];
