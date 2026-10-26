@@ -13,12 +13,13 @@
 <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
+<div class="progress" aria-hidden="true"></div>
 
 <header class="hero">
   <div class="wrap">
     <p class="kicker">Ship interior Localizer</p>
     <h1>선박 이중저 내부에서의 <br>다중 가설 LiDAR 전역 위치 추정</h1>
-    <p class="byline"><b>유재민</b> · 컴퓨터공학부 석사과정 · Spatial Intelligence (SPIN) Lab., KOREATECH</p>
+    <p class="byline"><b>유재민</b> · 컴퓨터공학부 석사과정 · <span class="nb">Spatial Intelligence (SPIN) Lab., KOREATECH</span></p>
     <p class="sub">지도는 있지만 내가 그 지도 위 어디인지 모를 때. 선박 이중저 안에서 <b>LiDAR 스캔 한 장</b>과 <b>CAD 지도</b>만으로 로봇의 위치(x, y, z)와 바라보는 방향(yaw)을 찾습니다. 골조가 똑같이 반복되어 답이 모호할 때는 하나를 억지로 고르지 않고, 스캔으로 배제할 수 없는 자세를 모두 가중치와 함께 돌려줍니다.</p>
     <div class="buttons">
       <a class="btn" href="#problem">문제</a>
@@ -153,7 +154,7 @@
       <p class="lead">위치 추정은 스캔을 <b>미리 만들어 둔 지도</b>와 맞춰 보는 일입니다. 이 지도는 로봇이 움직이기 전에, 선박 설계(CAD) 모델에서 한 번만 만듭니다.</p>
       <p>지도 전체를 매번 스캔과 비교하면 너무 느립니다. 그래서 맨해튼 구조를 이용해 지도를 방향별 <b>1차원 요약</b>으로 줄여 둡니다. 아래 단계별 설명의 4–5단계에서 스캔과 비교하는 대상이 바로 이 요약입니다.</p>
     </div>
-    <figure>
+    <figure class="framed">
       <img src="static/images/map_flow_ko.png" alt="CAD 모델, 표면 점군, 면 방향 분류, 그리고 Y 평면 목록, Z 평면 목록, x 시그니처로 이어지는 지도 생성 과정" loading="lazy">
       <figcaption>지도 만드는 과정. ①–③은 구획 c = 2의 이중저 일부를 확대한 것이고, ④는 배 전체에 대한 결과입니다.</figcaption>
     </figure>
@@ -177,21 +178,21 @@
       <h3>점마다 면의 방향 정하기</h3>
       <p>각 점 주변 0.3 m 안의 이웃 점들에 평면을 맞추면 그 점의 법선이 나옵니다. 법선이 x, y, z 축 중 하나와 거의 나란하면 그 축의 "향" 점이 되고, 어느 축과도 맞지 않는 모서리와 곡면 선체는 버립니다.</p>
     </div>
-    <figure><img src="static/images/mm_classify_ko.png" alt="지도의 두 단면에서 점, 법선 화살표, 축 분류 결과" loading="lazy"></figure>
+    <figure class="framed"><img src="static/images/mm_classify_ko.png" alt="지도의 두 단면에서 점, 법선 화살표, 축 분류 결과" loading="lazy"></figure>
     <div class="narrow">
       <h3>평면 목록: 위치를 세면 평면이 보인다</h3>
       <p>세로로 선 거더 한 장 위의 점들은 모두 같은 y 위치에 있습니다. 그래서 Y 향 점들의 y 위치를 세면 거더가 있는 곳마다 뾰족한 봉우리가 생기고, 그 봉우리 위치가 곧 평면 위치입니다. 바닥판과 내저판도 Z 향 점의 높이로 같은 방법을 씁니다.</p>
     </div>
-    <figure><img src="static/images/mm_planes_ko.png" alt="배 전체를 길이 방향으로 겹쳐 본 단면과 y, z 히스토그램, 저장된 평면 위치" loading="lazy"></figure>
+    <figure class="framed"><img src="static/images/mm_planes_ko.png" alt="배 전체를 길이 방향으로 겹쳐 본 단면과 y, z 히스토그램, 저장된 평면 위치" loading="lazy"></figure>
     <div class="narrow">
       <h3>x 시그니처와 구획: 배의 바코드</h3>
       <p>길이 방향(x)은 다르게 다룹니다. 늑판이 3 m마다 똑같이 반복되어 위치 목록만으로는 어느 늑판인지 구분할 수 없기 때문에, X 향 점의 x 위치 분포를 <b>통째로</b> 저장합니다. 격벽 봉우리는 늑판보다 수십 배 높아서, 이것으로 배를 구획 7개로 나눕니다. 데이터셋은 모두 구획 c = 2(x 54–81 m)에서 찍었습니다.</p>
     </div>
-    <figure><img src="static/images/mm_signature_ko.png" alt="X 향 점의 측면도, 배 전체의 x 시그니처와 구획 경계, 구획 c=2 확대" loading="lazy"></figure>
+    <figure class="framed"><img src="static/images/mm_signature_ko.png" alt="X 향 점의 측면도, 배 전체의 x 시그니처와 구획 경계, 구획 c=2 확대" loading="lazy"></figure>
   </div>
 </section>
 
-<section id="how" style="padding-bottom:0">
+<section id="how" class="band" style="padding-bottom:40px">
   <div class="wrap narrow">
     <p class="eyebrow">작동 원리</p>
     <h2>9단계 파이프라인</h2>
@@ -252,7 +253,7 @@
   <!-- 1 ------------------------------------------------------------ -->
   <div class="stage" id="s1">
     <div class="text">
-      <span class="no">1</span>
+      <div class="shead"><span class="no">1</span></div>
       <h3>입력: LiDAR 스캔 한 장</h3>
       <p>시뮬레이션된 3D LiDAR(Isaac Sim RTX)로 얻은 센서 좌표계의 스캔 한 장입니다. 자세는 알 수 없으며, 구하는 값은 x, y, z, yaw 네 개입니다.</p>
       <p>원시 스캔(약 30만 점)을 0.1 m 복셀 필터로 약 6천 점까지 줄입니다. 색은 높이를 나타냅니다.</p>
@@ -264,7 +265,7 @@
   <!-- 2 ------------------------------------------------------------ -->
   <div class="stage" id="s2">
     <div class="text">
-      <span class="no">2</span>
+      <div class="shead"><span class="no">2</span></div>
       <h3>벽 법선으로 yaw 가설 만들기</h3>
       <p>로봇이 10° 돌아가 있으면 스캔에 보이는 <b>모든</b> 벽의 방향도 똑같이 10°씩 어긋나 있습니다. 그래서 벽들이 공통으로 어긋난 각도를 찾으면 그게 yaw입니다.</p>
       <p>수직 벽(|n<sub>z</sub>| &lt; 0.2) 위의 점마다 법선이 수평면에서 가리키는 방향을 구해 모읍니다. 그런데 벽 방향은 90° 간격으로 네 갈래라서 그냥 평균하면 서로 상쇄되어 사라집니다. 각도에 4를 곱하면 네 갈래가 하나로 겹치므로, 4배 한 뒤 평균하고 다시 4로 나눕니다. 평균 화살표의 길이(0–1)는 벽들이 네 방향에 얼마나 깔끔하게 모였는지를 뜻합니다.</p>
@@ -287,7 +288,7 @@
   <!-- 3 ------------------------------------------------------------ -->
   <div class="stage" id="s3">
     <div class="text">
-      <span class="no">3</span>
+      <div class="shead"><span class="no">3</span></div>
       <h3>축 분류</h3>
       <p>yaw 가설만큼 회전한 뒤, 각 점에 표면 법선이 향하는 축으로 라벨을 붙입니다. 어느 축과도 뚜렷하게 정렬되지 않은 점, 즉 모서리, 코너, 곡면인 빌지는 버립니다.</p>
       <ul>
@@ -303,7 +304,7 @@
   <!-- 4 ------------------------------------------------------------ -->
   <div class="stage" id="s4">
     <div class="text">
-      <span class="no">4</span>
+      <div class="shead"><span class="no">4</span></div>
       <h3>단면 투표로 y, z 구하기</h3>
       <p>스캔의 Y 방향 점들을 y축으로 히스토그램을 만들면, 피크가 스캔 주변의 평면들입니다. 이것을 앞에서 만든 지도의 평면 목록(Y 평면 29개, Z 평면 11개)과 비교합니다. 스캔 평면 하나가 지도 평면 하나와 같은 면이라면, 두 위치의 차이만큼 스캔을 옮기면 됩니다.</p>
       <p>어느 쌍이 맞는지 모르므로 모든 쌍이 스캔 평면의 점 개수만큼 가중치를 두고 투표합니다. 많은 쌍이 동의하는 값이 진짜 이동량입니다. 최빈값 하나가 아니라, 축마다 지지가 가장 높은 값 6개를 남깁니다.</p>
@@ -321,7 +322,7 @@
   <!-- 5 ------------------------------------------------------------ -->
   <div class="stage" id="s5">
     <div class="text">
-      <span class="no">5</span>
+      <div class="shead"><span class="no">5</span></div>
       <h3>길이 방향 상관으로 x 구하기</h3>
       <p>선박 길이 방향으로 X 방향 점들은 바코드를 이룹니다. 3 m마다 플로어, 27 m마다 격벽이 있습니다. 스캔에도 짧은 바코드가 있습니다. 이것을 지도의 바코드를 따라 밀면서 각 오프셋에서 정규화 상호상관(NCC)을 계산하면 x 후보에 대한 곡선이 나옵니다.</p>
       <p>정규화 상호상관(NCC)은 두 바코드의 크기 차이를 지우고 모양만 비교한 닮음 정도로, 1이면 똑같고 0 근처면 관계가 없습니다. 점 개수가 아니라 늑판과 격벽이 놓인 간격의 패턴을 봅니다.</p>
@@ -356,7 +357,7 @@
   <!-- 6 ------------------------------------------------------------ -->
   <div class="stage" id="s6">
     <div class="text">
-      <span class="no">6</span>
+      <div class="shead"><span class="no">6</span></div>
       <h3>가설 선별</h3>
       <p>yaw × x 피크 × y 후보 × z 후보의 모든 조합이 하나의 완전한 자세입니다. Case B에서는 2,772개입니다. 각 자세는 스캔이 지도에 얼마나 잘 얹히는지로 점수를 매기며, 인라이어 개수 대신 부드러운 커널을 씁니다.</p>
       <p>스캔 점을 그 자세로 지도 위에 놓고, 점마다 가장 가까운 지도 점까지의 거리를 잽니다. 지도에 딱 붙어 있으면 1점, 25 cm 이상 떨어지면 0점이고 그 사이는 부드럽게 줄어듭니다. 이 점수들의 평균이 그 자세의 점수입니다.</p>
@@ -379,7 +380,7 @@
   <!-- 7 ------------------------------------------------------------ -->
   <div class="stage" id="s7">
     <div class="text">
-      <span class="no">7</span>
+      <div class="shead"><span class="no">7</span></div>
       <h3>4자유도 point-to-plane ICP</h3>
       <p>살아남은 25개는 0.1 m 시그니처 빈과 평면 투표 잡음 때문에 수십 cm 어긋나 있을 수 있습니다. 각각을 10회 반복으로 정밀화합니다. 매 반복마다 스캔 점 1,000개를 가장 가까운 지도 점과 그 법선에 대응시키고, point-to-plane 거리를 최소화하는 [Δyaw, Δx, Δy, Δz]를 구합니다.</p>
       <p>대응 게이트는 0.8 m에서 0.25 m로 선형으로 줄어듭니다. 초반 반복은 큰 어긋남도 받아들이고, 후반 반복은 실제로 지도 위에 놓인 점만 반영합니다.</p>
@@ -391,7 +392,7 @@
   <!-- 8 ------------------------------------------------------------ -->
   <div class="stage" id="s8">
     <div class="text">
-      <span class="no">8</span>
+      <div class="shead"><span class="no">8</span></div>
       <h3>Paired-z 선택</h3>
       <p>평균 점수 비교만으로는 부족합니다. 대부분의 점(바닥 판재, 긴 벽)은 모든 닮은 위치에 똑같이 잘 맞아서 차이를 희석시킵니다. 그래서 대응 표본 t-검정처럼 같은 스캔 점 위에서 두 자세를 <b>점 하나하나</b> 비교합니다.</p>
       <p>스캔 점마다 “1등 자세에서의 점수 − 경쟁 자세에서의 점수”를 구합니다. 이 차이들의 평균이 차이의 흩어짐에 비해 얼마나 큰지를 나타낸 값이 z입니다. z가 3 이상이면 1등이 일관되게 이긴 것이므로 경쟁 가설을 지우고, 3 미만이면 배제할 수 없으므로 남깁니다(최대 10개). 남은 가설의 가중치는 z가 작을수록, 즉 1등과 구별하기 어려울수록 큽니다.</p>
@@ -416,7 +417,7 @@
   <!-- 9 ------------------------------------------------------------ -->
   <div class="stage" id="s9">
     <div class="text">
-      <span class="no">9</span>
+      <div class="shead"><span class="no">9</span></div>
       <h3>출력: 가중치가 붙은 가설 집합</h3>
       <p>로봇은 살아남은 모든 자세를 받습니다. 각 자세에는 점수, 최선의 자세 대비 z, 가중치가 붙어 있습니다. 가설이 정확히 하나만 남았을 때만 결과가 <b>확정</b>입니다.</p>
       <p>집합의 모양이 모호성을 보여 줍니다. Case B에서 yaw 0° 가설들은 3 m 프레임 간격의 배수만큼 이동해 있고, yaw 180° 가설들은 중심 거더 반대편의 대칭 위치입니다.</p>
@@ -482,7 +483,7 @@
       <h3>그래서 다음은 추적(tracking)</h3>
       <p>첫 번째 한계는 가설을 한 장 안에서 더 잘 고르는 문제가 아니라, <b>정보가 부족한</b> 문제입니다. 로봇이 움직이며 얻은 스캔을 이어 붙이면 예측 자세 근처만 보면 되므로 닮은 위치들이 떨어져 나갑니다. 이 방법의 출력이 “하나의 답”이 아니라 가중치가 붙은 집합인 이유도 여기 있습니다. 뒤에 오는 추적 단계가 그 집합을 그대로 이어받을 수 있습니다.</p>
     </div>
-    <figure>
+    <figure class="framed">
       <img src="static/images/tracking_intuition.png" alt="선체 전체를 따라 본 검증 점수에 비슷한 피크가 많고, 추적 창이 정답 피크만 남기는 모습" loading="lazy">
       <figcaption>yaw, y, z를 정답에 고정하고 x를 선체를 따라 움직이면, 수십 개 위치가 최고 점수와 0.01 이내로 차이 납니다. 움직임 사전 정보(추적)는 예측 자세 근처만 탐색해 이들을 제거합니다.</figcaption>
     </figure>
