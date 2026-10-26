@@ -124,3 +124,57 @@ footer { padding: 40px 0 60px; color: var(--muted); font-size: 13.5px; border-to
 .mw { align-items: start; margin-top: 8px; }
 .mw figure { margin: 0; }
 .mw svg text { font-family: var(--f-body); }
+
+/* ------------------------------------------------------------- cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 18px 0; }
+.cards > div { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; }
+.cards h4 { font-family: var(--f-head); font-size: 17px; margin: 0 0 6px; line-height: 1.3; }
+.cards p { font-size: 14.5px; color: var(--ink2); margin: 0; line-height: 1.65; }
+.cards.four { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.cards.four h4 { font-family: var(--f-mono); font-size: 21px; }
+.cards.two-up { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+.goal { background: var(--tint); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 14px; margin-top: 4px; }
+.note { background: var(--tint); border-radius: 8px; padding: 11px 13px; font-size: 14.5px; color: var(--ink2); line-height: 1.7; }
+.note b { color: var(--ink); }
+
+/* --------------------------------------------------- sequential flow */
+.flow { display: flex; align-items: stretch; gap: 8px; margin: 18px 0; }
+.flow .fb { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 13px 15px; }
+.flow .fb .t { display: block; font-family: var(--f-mono); font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+.flow .fb > b { font-family: var(--f-head); font-size: 17px; display: block; margin-bottom: 5px; }
+.flow .fb p { font-size: 14px; color: var(--ink2); margin: 0; line-height: 1.6; }
+.flow .fa { align-self: center; flex: 0 0 auto; color: var(--muted); font-size: 19px; }
+@media (max-width: 880px) { .flow { flex-direction: column; } .flow .fa { align-self: center; transform: rotate(90deg); } }
+
+/* ------------------------------------------------------- glossary */
+.gloss { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 24px; margin: 12px 0 0; }
+.gloss div { padding: 8px 0; border-top: 1px solid var(--rule); font-size: 14.5px; color: var(--ink2); line-height: 1.6; }
+.gloss b { color: var(--ink); }
+
+/* ----------------------------------------- worked example (collapsible) */
+.ex { background: var(--tint); border-radius: 8px; padding: 11px 13px; margin: 14px 0; font-size: 14px; color: var(--ink2); line-height: 1.7; }
+.ex > summary { cursor: pointer; list-style: none; display: flex; gap: 7px; align-items: baseline; color: var(--ink); font-weight: 500; font-size: 14px; }
+.ex > summary::-webkit-details-marker { display: none; }
+.ex > summary::before { content: "▸"; color: var(--accent); font-size: 11px; }
+.ex[open] > summary { margin-bottom: 7px; }
+.ex[open] > summary::before { content: "▾"; }
+.ex p { font-size: 14px; margin: 0 0 8px; }
+.ex ul { padding-left: 18px; margin: 0 0 8px; }
+.ex li { font-size: 14px; margin-bottom: 3px; }
+.ex b { color: var(--ink); }
+.ex > *:last-child { margin-bottom: 0; }
+.ex table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 9px; }
+.ex th, .ex td { padding: 4px 6px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+.ex th:first-child, .ex td:first-child { text-align: left; white-space: normal; }
+.ex th { color: var(--muted); font-weight: 500; }
+.ex .num { font-family: var(--f-mono); }
+.ex .sub-label { margin: 10px 0 0; }
+
+/* ----------------------------------------------- pipeline overview table */
+table.res.pipe td { white-space: normal; }
+table.res.pipe tr.ph td { background: var(--tint); color: var(--ink); font-weight: 600; font-size: 13px; text-align: left; }
+table.res.pipe td a { text-decoration: none; font-weight: 500; white-space: nowrap; }
+table.res.pipe td a:hover { text-decoration: underline; }
+.ex table.cmp { table-layout: fixed; }
+.ex table.cmp th, .ex table.cmp td { white-space: normal; vertical-align: top; }
+.ex table.cmp td:first-child, .ex table.cmp th:first-child { width: 21%; }
